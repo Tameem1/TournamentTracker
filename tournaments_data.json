@@ -1,0 +1,105 @@
+{
+  "0111f4fe-aa20-4ad8-a037-3c36a87a5dc1": {
+    "id": "0111f4fe-aa20-4ad8-a037-3c36a87a5dc1",
+    "name": "قدم",
+    "sport_type": "كرة قدم",
+    "is_active": true,
+    "teams": {
+      "9d56bd49-5d80-4ff0-bb41-7be520414f41": {
+        "id": "9d56bd49-5d80-4ff0-bb41-7be520414f41",
+        "name": "فريق 1",
+        "sport_type": "كرة قدم"
+      },
+      "ccba9f66-e641-412c-9097-0ed8c85dad3a": {
+        "id": "ccba9f66-e641-412c-9097-0ed8c85dad3a",
+        "name": "فريق 2",
+        "sport_type": "كرة قدم"
+      },
+      "884cda90-49e9-4689-a73c-e2fb16262836": {
+        "id": "884cda90-49e9-4689-a73c-e2fb16262836",
+        "name": "فريق 3",
+        "sport_type": "كرة قدم"
+      },
+      "6ba3aae4-e175-4e2f-bc6d-5ca7c00ee4d0": {
+        "id": "6ba3aae4-e175-4e2f-bc6d-5ca7c00ee4d0",
+        "name": "فريق 4",
+        "sport_type": "كرة قدم"
+      }
+    },
+    "groups": {
+      "4904a8c5-6a86-420f-a52e-c46087e8d696": {
+        "id": "4904a8c5-6a86-420f-a52e-c46087e8d696",
+        "name": "المجموعة A",
+        "team_ids": [
+          "9d56bd49-5d80-4ff0-bb41-7be520414f41",
+          "ccba9f66-e641-412c-9097-0ed8c85dad3a",
+          "884cda90-49e9-4689-a73c-e2fb16262836",
+          "6ba3aae4-e175-4e2f-bc6d-5ca7c00ee4d0"
+        ]
+      }
+    },
+    "matches": {
+      "366e8800-5e0f-42ab-87e0-aa9c79b6bbe8": {
+        "id": "366e8800-5e0f-42ab-87e0-aa9c79b6bbe8",
+        "team1_id": "9d56bd49-5d80-4ff0-bb41-7be520414f41",
+        "team2_id": "ccba9f66-e641-412c-9097-0ed8c85dad3a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "4904a8c5-6a86-420f-a52e-c46087e8d696",
+        "round_type": "group"
+      },
+      "ce533a1c-ec40-405e-89b3-848c7b17e588": {
+        "id": "ce533a1c-ec40-405e-89b3-848c7b17e588",
+        "team1_id": "9d56bd49-5d80-4ff0-bb41-7be520414f41",
+        "team2_id": "884cda90-49e9-4689-a73c-e2fb16262836",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "4904a8c5-6a86-420f-a52e-c46087e8d696",
+        "round_type": "group"
+      },
+      "816c130d-70c7-4661-ad92-ab3b0da36742": {
+        "id": "816c130d-70c7-4661-ad92-ab3b0da36742",
+        "team1_id": "9d56bd49-5d80-4ff0-bb41-7be520414f41",
+        "team2_id": "6ba3aae4-e175-4e2f-bc6d-5ca7c00ee4d0",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "4904a8c5-6a86-420f-a52e-c46087e8d696",
+        "round_type": "group"
+      },
+      "bf0f1613-6866-4ab5-b938-663a1eccdb6c": {
+        "id": "bf0f1613-6866-4ab5-b938-663a1eccdb6c",
+        "team1_id": "ccba9f66-e641-412c-9097-0ed8c85dad3a",
+        "team2_id": "884cda90-49e9-4689-a73c-e2fb16262836",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "4904a8c5-6a86-420f-a52e-c46087e8d696",
+        "round_type": "group"
+      },
+      "8a5bb184-0841-4c4b-bf68-e9a27e7e2e21": {
+        "id": "8a5bb184-0841-4c4b-bf68-e9a27e7e2e21",
+        "team1_id": "ccba9f66-e641-412c-9097-0ed8c85dad3a",
+        "team2_id": "6ba3aae4-e175-4e2f-bc6d-5ca7c00ee4d0",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "4904a8c5-6a86-420f-a52e-c46087e8d696",
+        "round_type": "group"
+      },
+      "187bab07-e7e5-490e-a6da-342bf34b757c": {
+        "id": "187bab07-e7e5-490e-a6da-342bf34b757c",
+        "team1_id": "884cda90-49e9-4689-a73c-e2fb16262836",
+        "team2_id": "6ba3aae4-e175-4e2f-bc6d-5ca7c00ee4d0",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "4904a8c5-6a86-420f-a52e-c46087e8d696",
+        "round_type": "group"
+      }
+    },
+    "knockout_matches": {}
+  }
+}
