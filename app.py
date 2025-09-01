@@ -171,14 +171,36 @@ def render_view_results_page():
             selected_tournament_id = tournament_options[selected_tournament_label]
             selected_tournament = tournaments[selected_tournament_id]
             
-            st.markdown("---")
-            render_tournament_display(selected_tournament)
+            # Control buttons
+            col1, col2, col3 = st.columns(3)
             
-            # Edit button for this tournament
-            if st.button("⚙️ تعديل هذا الدوري", type="secondary"):
-                st.session_state.current_tournament = selected_tournament_id
-                st.session_state.page = "team_management"
-                st.rerun()
+            with col1:
+                if st.button("🖥️ عرض كامل", type="primary", key="full_screen_btn"):
+                    st.session_state.full_screen_mode = True
+                    st.session_state.full_screen_tournament = selected_tournament_id
+                    st.rerun()
+            
+            with col2:
+                if st.button("⚙️ تعديل هذا الدوري", type="secondary"):
+                    st.session_state.current_tournament = selected_tournament_id
+                    st.session_state.page = "team_management"
+                    st.rerun()
+            
+            with col3:
+                if 'full_screen_mode' in st.session_state and st.session_state.full_screen_mode:
+                    if st.button("🔙 عرض عادي", type="secondary", key="normal_screen_btn"):
+                        st.session_state.full_screen_mode = False
+                        if 'full_screen_tournament' in st.session_state:
+                            del st.session_state.full_screen_tournament
+                        st.rerun()
+            
+            st.markdown("---")
+            
+            # Display tournament in appropriate mode
+            if 'full_screen_mode' in st.session_state and st.session_state.full_screen_mode and st.session_state.get('full_screen_tournament') == selected_tournament_id:
+                render_tournament_display(selected_tournament, full_screen=True)
+            else:
+                render_tournament_display(selected_tournament, full_screen=False)
     
     else:
         # Automatic viewing mode
@@ -205,7 +227,7 @@ def render_view_results_page():
                 progress = (st.session_state.current_slide % len(tournament_list) + 1) / len(tournament_list)
                 st.progress(progress, text=f"الدوري {st.session_state.current_slide % len(tournament_list) + 1} من {len(tournament_list)}")
                 
-                render_tournament_display(current_tournament)
+                render_tournament_display(current_tournament, full_screen=True)
                 
                 # Auto-advance
                 time.sleep(st.session_state.slideshow_interval)
@@ -469,82 +491,89 @@ def render_edit_mode_page():
     else:
         st.info("لا توجد دوريات للتعديل")
 
-def render_tournament_display(tournament):
-    """Render complete tournament display with groups and knockout stages"""
-    st.header(f"{get_sport_icon(tournament.sport_type.value)} {tournament.name}")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.metric("عدد الفرق", len(tournament.teams))
-        st.metric("عدد المجموعات", len(tournament.groups))
-    
-    with col2:
-        completed_matches = sum(1 for m in tournament.matches.values() if m.is_completed)
-        st.metric("المباريات المكتملة", f"{completed_matches}/{len(tournament.matches)}")
-        knockout_completed = sum(1 for m in tournament.knockout_matches.values() if m.is_completed)
-        st.metric("مباريات الإقصاء المكتملة", f"{knockout_completed}/{len(tournament.knockout_matches)}")
-    
-    # Group stage display
-    if tournament.groups:
-        st.subheader("دور المجموعات")
+def render_tournament_display(tournament, full_screen=False):
+    """Render complete tournament display with tree-like bracket view"""
+    # Header with full screen option
+    if not full_screen:
+        st.header(f"{get_sport_icon(tournament.sport_type.value)} {tournament.name}")
         
-        for group_id, group in tournament.groups.items():
-            with st.expander(f"{group.name}", expanded=True):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric("عدد الفرق", len(tournament.teams))
+            st.metric("عدد المجموعات", len(tournament.groups))
+        
+        with col2:
+            completed_matches = sum(1 for m in tournament.matches.values() if m.is_completed)
+            st.metric("المباريات المكتملة", f"{completed_matches}/{len(tournament.matches)}")
+            knockout_completed = sum(1 for m in tournament.knockout_matches.values() if m.is_completed)
+            st.metric("مباريات الإقصاء المكتملة", f"{knockout_completed}/{len(tournament.knockout_matches)}")
+    else:
+        # Full screen mode - larger header
+        st.markdown(f"<h1 style='text-align: center; font-size: 3rem; margin-bottom: 2rem;'>{get_sport_icon(tournament.sport_type.value)} {tournament.name}</h1>", unsafe_allow_html=True)
+    
+    # Tournament bracket tree display
+    st.markdown("---")
+    
+    # Group stage section
+    if tournament.groups:
+        st.markdown(f"<h2 style='text-align: center; color: #1f4e79; margin-bottom: 1.5rem;'>🏁 دور المجموعات</h2>", unsafe_allow_html=True)
+        
+        # Display groups in columns
+        group_cols = st.columns(len(tournament.groups))
+        group_winners = []
+        
+        for i, (group_id, group) in enumerate(tournament.groups.items()):
+            with group_cols[i]:
+                st.markdown(f"<h4 style='text-align: center; background: linear-gradient(90deg, #1f4e79, #4a90e2); color: white; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem;'>{group.name}</h4>", unsafe_allow_html=True)
+                
                 # Group standings
                 standings = tournament.get_group_standings(group_id)
                 
                 if standings:
-                    st.write("**الترتيب:**")
-                    
-                    # Create standings table
-                    standings_data = []
-                    for i, team_data in enumerate(standings):
-                        standings_data.append({
-                            "المركز": i + 1,
-                            "الفريق": team_data['team_name'],
-                            "لعب": team_data['played'],
-                            "فاز": team_data['won'],
-                            "تعادل": team_data['drawn'],
-                            "خسر": team_data['lost'],
-                            "النقاط": team_data['points'],
-                            "فارق الأهداف": team_data['goal_difference']
-                        })
-                    
-                    st.dataframe(standings_data, use_container_width=True)
+                    # Display top teams prominently
+                    for j, team_data in enumerate(standings[:4]):  # Show top 4
+                        position_emoji = ["🥇", "🥈", "🥉", "4️⃣"][j] if j < 4 else f"{j+1}️⃣"
+                        
+                        if j == 0:  # Winner
+                            st.markdown(f"<div style='background: gold; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center; font-weight: bold;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
+                            group_winners.append(team_data['team_id'])
+                        elif j == 1:  # Runner-up
+                            st.markdown(f"<div style='background: silver; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
+                        elif j == 2:  # Third place
+                            st.markdown(f"<div style='background: #cd7f32; color: white; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<div style='background: #f0f0f0; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
                 
-                # Group matches
+                # Group matches summary
                 group_matches = [m for m in tournament.matches.values() if m.group_id == group_id]
                 if group_matches:
-                    st.write("**المباريات:**")
-                    
-                    for match in group_matches:
-                        team1 = tournament.teams.get(match.team1_id)
-                        team2 = tournament.teams.get(match.team2_id)
-                        team1_name = team1.name if team1 else 'فريق غير معروف'
-                        team2_name = team2.name if team2 else 'فريق غير معروف'
-                        
-                        if match.is_completed:
-                            st.write(f"✅ {team1_name} {match.team1_score} - {match.team2_score} {team2_name}")
-                        else:
-                            st.write(f"⏳ {team1_name} vs {team2_name} (لم تلعب بعد)")
+                    completed_count = sum(1 for m in group_matches if m.is_completed)
+                    st.markdown(f"<p style='text-align: center; font-size: 0.9rem; color: #666;'>المباريات: {completed_count}/{len(group_matches)}</p>", unsafe_allow_html=True)
     
-    # Knockout stage display
+    # Knockout stage tree display
     if tournament.knockout_matches:
-        st.subheader("دور الإقصاء")
+        st.markdown("---")
+        st.markdown(f"<h2 style='text-align: center; color: #dc3545; margin: 2rem 0;'>🏆 دور الإقصاء</h2>", unsafe_allow_html=True)
         
-        # Group by round type
+        # Group knockout matches by round
         rounds = {}
         for match in tournament.knockout_matches.values():
             if match.round_type not in rounds:
                 rounds[match.round_type] = []
             rounds[match.round_type].append(match)
         
-        for round_type in ["semi", "final"]:
-            if round_type in rounds:
-                st.write(f"**{get_round_name(round_type)}**")
+        # Display knockout tree
+        if "semi" in rounds and "final" in rounds:
+            # Full knockout tree (Semi + Final)
+            col1, col2, col3 = st.columns([2, 1, 2])
+            
+            # Semi-finals
+            with col1:
+                st.markdown(f"<h4 style='text-align: center; color: #dc3545;'>نصف النهائي</h4>", unsafe_allow_html=True)
+                semi_winners = []
                 
-                for match in rounds[round_type]:
+                for match in rounds["semi"]:
                     team1 = tournament.teams.get(match.team1_id)
                     team2 = tournament.teams.get(match.team2_id)
                     team1_name = team1.name if team1 else 'فريق غير معروف'
@@ -555,11 +584,104 @@ def render_tournament_display(tournament):
                         if winner:
                             winner_team = tournament.teams.get(winner)
                             winner_name = winner_team.name if winner_team else 'فريق غير معروف'
-                            st.write(f"🏆 {team1_name} {match.team1_score} - {match.team2_score} {team2_name} (الفائز: {winner_name})")
+                            semi_winners.append(winner)
+                            
+                            st.markdown(f"""
+                            <div style='border: 2px solid #dc3545; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: #fff5f5;'>
+                                <div style='text-align: center; font-weight: bold; color: #dc3545; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
+                                <div style='text-align: center; font-size: 1.2rem;'>{match.team1_score} - {match.team2_score}</div>
+                                <div style='text-align: center; background: #dc3545; color: white; padding: 0.3rem; border-radius: 0.3rem; margin-top: 0.5rem;'>🏆 الفائز: {winner_name}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
                         else:
-                            st.write(f"🤝 {team1_name} {match.team1_score} - {match.team2_score} {team2_name} (تعادل)")
+                            st.markdown(f"""
+                            <div style='border: 2px solid #ffc107; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: #fffbf0;'>
+                                <div style='text-align: center; font-weight: bold; color: #ffc107; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
+                                <div style='text-align: center; font-size: 1.2rem;'>{match.team1_score} - {match.team2_score}</div>
+                                <div style='text-align: center; background: #ffc107; color: black; padding: 0.3rem; border-radius: 0.3rem; margin-top: 0.5rem;'>🤝 تعادل</div>
+                            </div>
+                            """, unsafe_allow_html=True)
                     else:
-                        st.write(f"⏳ {team1_name} vs {team2_name} (لم تلعب بعد)")
+                        st.markdown(f"""
+                        <div style='border: 2px dashed #6c757d; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: #f8f9fa;'>
+                            <div style='text-align: center; color: #6c757d;'>{team1_name} ضد {team2_name}</div>
+                            <div style='text-align: center; color: #6c757d; margin-top: 0.5rem;'>⏳ لم تلعب بعد</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            # Arrow or connector
+            with col2:
+                st.markdown("<div style='text-align: center; font-size: 3rem; margin-top: 3rem;'>➡️</div>", unsafe_allow_html=True)
+            
+            # Final
+            with col3:
+                st.markdown(f"<h4 style='text-align: center; color: #dc3545;'>النهائي</h4>", unsafe_allow_html=True)
+                
+                for match in rounds["final"]:
+                    team1 = tournament.teams.get(match.team1_id)
+                    team2 = tournament.teams.get(match.team2_id)
+                    team1_name = team1.name if team1 else 'فريق غير معروف'
+                    team2_name = team2.name if team2 else 'فريق غير معروف'
+                    
+                    if match.is_completed:
+                        winner = match.get_winner()
+                        if winner:
+                            winner_team = tournament.teams.get(winner)
+                            winner_name = winner_team.name if winner_team else 'فريق غير معروف'
+                            
+                            st.markdown(f"""
+                            <div style='border: 3px solid #ffd700; border-radius: 0.5rem; padding: 1.5rem; background: linear-gradient(45deg, #ffd700, #ffed4e);'>
+                                <div style='text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
+                                <div style='text-align: center; font-size: 1.5rem; font-weight: bold;'>{match.team1_score} - {match.team2_score}</div>
+                                <div style='text-align: center; background: #dc3545; color: white; padding: 0.5rem; border-radius: 0.3rem; margin-top: 0.5rem; font-size: 1.1rem;'>👑 البطل: {winner_name}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"""
+                            <div style='border: 3px solid #ffc107; border-radius: 0.5rem; padding: 1.5rem; background: linear-gradient(45deg, #ffc107, #ffed4e);'>
+                                <div style='text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
+                                <div style='text-align: center; font-size: 1.5rem; font-weight: bold;'>{match.team1_score} - {match.team2_score}</div>
+                                <div style='text-align: center; background: #ffc107; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-top: 0.5rem; font-size: 1.1rem;'>🤝 تعادل في النهائي</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"""
+                        <div style='border: 3px dashed #6c757d; border-radius: 0.5rem; padding: 1.5rem; background: #f8f9fa;'>
+                            <div style='text-align: center; color: #6c757d; font-size: 1.2rem;'>{team1_name} ضد {team2_name}</div>
+                            <div style='text-align: center; color: #6c757d; margin-top: 0.5rem; font-size: 1.1rem;'>⏳ النهائي لم يلعب بعد</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+        
+        elif "final" in rounds:
+            # Direct final
+            st.markdown(f"<h4 style='text-align: center; color: #dc3545;'>النهائي</h4>", unsafe_allow_html=True)
+            
+            for match in rounds["final"]:
+                team1 = tournament.teams.get(match.team1_id)
+                team2 = tournament.teams.get(match.team2_id)
+                team1_name = team1.name if team1 else 'فريق غير معروف'
+                team2_name = team2.name if team2 else 'فريق غير معروف'
+                
+                if match.is_completed:
+                    winner = match.get_winner()
+                    if winner:
+                        winner_team = tournament.teams.get(winner)
+                        winner_name = winner_team.name if winner_team else 'فريق غير معروف'
+                        
+                        st.markdown(f"""
+                        <div style='border: 3px solid #ffd700; border-radius: 0.5rem; padding: 2rem; background: linear-gradient(45deg, #ffd700, #ffed4e); text-align: center;'>
+                            <div style='font-weight: bold; font-size: 1.5rem; margin-bottom: 1rem;'>{team1_name} ضد {team2_name}</div>
+                            <div style='font-size: 2rem; font-weight: bold; margin-bottom: 1rem;'>{match.team1_score} - {match.team2_score}</div>
+                            <div style='background: #dc3545; color: white; padding: 1rem; border-radius: 0.5rem; font-size: 1.3rem;'>👑 البطل: {winner_name}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style='border: 3px dashed #6c757d; border-radius: 0.5rem; padding: 2rem; background: #f8f9fa; text-align: center;'>
+                        <div style='color: #6c757d; font-size: 1.5rem;'>{team1_name} ضد {team2_name}</div>
+                        <div style='color: #6c757d; margin-top: 1rem; font-size: 1.2rem;'>⏳ النهائي لم يلعب بعد</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 def render_dashboard():
     """Render main dashboard"""
