@@ -8,11 +8,46 @@ from models import Tournament
 # Legacy JSON path (still used for one-time migration if present)
 DATA_FILE = "tournaments_data.json"
 
-# SQLite database file
-DB_PATH = "tournaments.db"
+def _resolve_db_path() -> str:
+    """Resolve a writable absolute path for the SQLite DB.
+
+    Priority:
+    1) env TOURNAMENT_DB_PATH (directory will be created if missing)
+    2) project directory (next to this file) if writable
+    3) ~/.tournamenttracker/tournaments.db
+    """
+    env_path = os.environ.get("TOURNAMENT_DB_PATH")
+    if env_path:
+        db_path = os.path.abspath(env_path)
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        return db_path
+
+    project_dir = os.path.abspath(os.path.dirname(__file__))
+    candidate = os.path.join(project_dir, "tournaments.db")
+    try:
+        os.makedirs(project_dir, exist_ok=True)
+        # quick writability check
+        test_path = os.path.join(project_dir, ".writetest")
+        with open(test_path, "w") as _f:
+            _f.write("ok")
+        os.remove(test_path)
+        return candidate
+    except Exception:
+        pass
+
+    home_dir = os.path.join(os.path.expanduser("~"), ".tournamenttracker")
+    os.makedirs(home_dir, exist_ok=True)
+    return os.path.join(home_dir, "tournaments.db")
+
+# SQLite database file (absolute)
+DB_PATH = _resolve_db_path()
 
 def _get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
+    # Improve concurrency characteristics
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute("PRAGMA busy_timeout=5000;")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS kv_store (

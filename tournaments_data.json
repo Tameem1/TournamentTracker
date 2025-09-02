@@ -1,0 +1,718 @@
+{
+  "225ded50-34a7-4da1-bec9-03814cb70eba": {
+    "id": "225ded50-34a7-4da1-bec9-03814cb70eba",
+    "name": "كرة القدم",
+    "sport_type": "كرة قدم",
+    "is_active": true,
+    "teams": {
+      "e2cbee6f-cedf-459c-a249-8b521c88318d": {
+        "id": "e2cbee6f-cedf-459c-a249-8b521c88318d",
+        "name": "فريق ١",
+        "sport_type": "كرة قدم"
+      },
+      "3c128f83-c6f7-4dd4-8bfe-b7ece93bbbc4": {
+        "id": "3c128f83-c6f7-4dd4-8bfe-b7ece93bbbc4",
+        "name": "فريق ٢",
+        "sport_type": "كرة قدم"
+      },
+      "6fa862b7-c3d8-4957-9d1c-48b11b9fab32": {
+        "id": "6fa862b7-c3d8-4957-9d1c-48b11b9fab32",
+        "name": "فريق ٣",
+        "sport_type": "كرة قدم"
+      },
+      "f6244531-982a-4a00-8a57-24ac01a4b671": {
+        "id": "f6244531-982a-4a00-8a57-24ac01a4b671",
+        "name": "فريق ٤",
+        "sport_type": "كرة قدم"
+      },
+      "b5647346-6141-4620-99b9-607771b8339e": {
+        "id": "b5647346-6141-4620-99b9-607771b8339e",
+        "name": "فريق ٥",
+        "sport_type": "كرة قدم"
+      },
+      "2ba85cf2-197b-4e66-af2a-1f0f93baef7a": {
+        "id": "2ba85cf2-197b-4e66-af2a-1f0f93baef7a",
+        "name": "فريق ٦",
+        "sport_type": "كرة قدم"
+      }
+    },
+    "groups": {
+      "ad2f4d06-0199-41f3-9c5d-98f0f6116e84": {
+        "id": "ad2f4d06-0199-41f3-9c5d-98f0f6116e84",
+        "name": "المجموعة A",
+        "team_ids": [
+          "e2cbee6f-cedf-459c-a249-8b521c88318d",
+          "6fa862b7-c3d8-4957-9d1c-48b11b9fab32",
+          "b5647346-6141-4620-99b9-607771b8339e"
+        ]
+      },
+      "2f635dca-5854-40eb-b90a-8e7893e6015d": {
+        "id": "2f635dca-5854-40eb-b90a-8e7893e6015d",
+        "name": "المجموعة B",
+        "team_ids": [
+          "3c128f83-c6f7-4dd4-8bfe-b7ece93bbbc4",
+          "f6244531-982a-4a00-8a57-24ac01a4b671",
+          "2ba85cf2-197b-4e66-af2a-1f0f93baef7a"
+        ]
+      }
+    },
+    "matches": {
+      "2f6e5466-a5a1-482e-9af2-a4ac2e72fafe": {
+        "id": "2f6e5466-a5a1-482e-9af2-a4ac2e72fafe",
+        "team1_id": "e2cbee6f-cedf-459c-a249-8b521c88318d",
+        "team2_id": "6fa862b7-c3d8-4957-9d1c-48b11b9fab32",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "ad2f4d06-0199-41f3-9c5d-98f0f6116e84",
+        "round_type": "group"
+      },
+      "7ffc43df-c1a9-4337-a489-a7a4902e24f1": {
+        "id": "7ffc43df-c1a9-4337-a489-a7a4902e24f1",
+        "team1_id": "e2cbee6f-cedf-459c-a249-8b521c88318d",
+        "team2_id": "b5647346-6141-4620-99b9-607771b8339e",
+        "team1_score": 0,
+        "team2_score": 1,
+        "status": "مكتملة",
+        "group_id": "ad2f4d06-0199-41f3-9c5d-98f0f6116e84",
+        "round_type": "group"
+      },
+      "899a8a65-69d4-4a85-8f6b-586deb12d09f": {
+        "id": "899a8a65-69d4-4a85-8f6b-586deb12d09f",
+        "team1_id": "6fa862b7-c3d8-4957-9d1c-48b11b9fab32",
+        "team2_id": "b5647346-6141-4620-99b9-607771b8339e",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "ad2f4d06-0199-41f3-9c5d-98f0f6116e84",
+        "round_type": "group"
+      },
+      "e85e3f64-cb92-4187-bbe9-0012cd5b2c13": {
+        "id": "e85e3f64-cb92-4187-bbe9-0012cd5b2c13",
+        "team1_id": "3c128f83-c6f7-4dd4-8bfe-b7ece93bbbc4",
+        "team2_id": "f6244531-982a-4a00-8a57-24ac01a4b671",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "2f635dca-5854-40eb-b90a-8e7893e6015d",
+        "round_type": "group"
+      },
+      "57565ec0-07e3-49e6-acae-74f4538d4346": {
+        "id": "57565ec0-07e3-49e6-acae-74f4538d4346",
+        "team1_id": "3c128f83-c6f7-4dd4-8bfe-b7ece93bbbc4",
+        "team2_id": "2ba85cf2-197b-4e66-af2a-1f0f93baef7a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "2f635dca-5854-40eb-b90a-8e7893e6015d",
+        "round_type": "group"
+      },
+      "f1fbe06d-c33b-4ddb-98aa-9f7d52b3234e": {
+        "id": "f1fbe06d-c33b-4ddb-98aa-9f7d52b3234e",
+        "team1_id": "f6244531-982a-4a00-8a57-24ac01a4b671",
+        "team2_id": "2ba85cf2-197b-4e66-af2a-1f0f93baef7a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "2f635dca-5854-40eb-b90a-8e7893e6015d",
+        "round_type": "group"
+      }
+    },
+    "knockout_matches": {
+      "97696df3-4b2c-4264-9edd-48fce445a5bc": {
+        "id": "97696df3-4b2c-4264-9edd-48fce445a5bc",
+        "team1_id": "b5647346-6141-4620-99b9-607771b8339e",
+        "team2_id": "3c128f83-c6f7-4dd4-8bfe-b7ece93bbbc4",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": null,
+        "round_type": "final"
+      }
+    }
+  },
+  "17ad34a7-d748-4e09-b5dd-b9c104bb9156": {
+    "id": "17ad34a7-d748-4e09-b5dd-b9c104bb9156",
+    "name": "تنس",
+    "sport_type": "تنس",
+    "is_active": true,
+    "teams": {
+      "38f77290-660f-49e1-abe0-2146cd80e3a2": {
+        "id": "38f77290-660f-49e1-abe0-2146cd80e3a2",
+        "name": "محمد",
+        "sport_type": "تنس"
+      },
+      "c2d3b22f-8a9c-4274-bb7a-272f97c39fb8": {
+        "id": "c2d3b22f-8a9c-4274-bb7a-272f97c39fb8",
+        "name": "احمد",
+        "sport_type": "تنس"
+      },
+      "217fe051-d67e-4106-b318-1439b42b1cdc": {
+        "id": "217fe051-d67e-4106-b318-1439b42b1cdc",
+        "name": "محمود",
+        "sport_type": "تنس"
+      },
+      "d4f4bc88-6fd0-47a1-9471-8b9cefe3810c": {
+        "id": "d4f4bc88-6fd0-47a1-9471-8b9cefe3810c",
+        "name": "كمال",
+        "sport_type": "تنس"
+      },
+      "ad208e6c-e3a8-4487-a0d5-dfdc4ed5842e": {
+        "id": "ad208e6c-e3a8-4487-a0d5-dfdc4ed5842e",
+        "name": "مجد",
+        "sport_type": "تنس"
+      },
+      "f1b06be5-156e-474d-9112-f0793508013a": {
+        "id": "f1b06be5-156e-474d-9112-f0793508013a",
+        "name": "اويس",
+        "sport_type": "تنس"
+      },
+      "d6c36b47-1121-472d-a28d-3317ce5f4932": {
+        "id": "d6c36b47-1121-472d-a28d-3317ce5f4932",
+        "name": "ابي",
+        "sport_type": "تنس"
+      },
+      "c476e21a-dbc9-46cd-99df-cc8956343f22": {
+        "id": "c476e21a-dbc9-46cd-99df-cc8956343f22",
+        "name": "خالد",
+        "sport_type": "تنس"
+      },
+      "70ab3ef1-ee18-467a-a28a-7deba6fc309d": {
+        "id": "70ab3ef1-ee18-467a-a28a-7deba6fc309d",
+        "name": "عمر",
+        "sport_type": "تنس"
+      },
+      "7e463845-8f26-4a41-bd43-58668f2d732a": {
+        "id": "7e463845-8f26-4a41-bd43-58668f2d732a",
+        "name": "نبيل",
+        "sport_type": "تنس"
+      },
+      "27d47ec4-a186-4e00-a82b-328159787160": {
+        "id": "27d47ec4-a186-4e00-a82b-328159787160",
+        "name": "ابراهيم",
+        "sport_type": "تنس"
+      }
+    },
+    "groups": {
+      "bea4bf0f-1677-4dd6-8fea-49664ffba3b9": {
+        "id": "bea4bf0f-1677-4dd6-8fea-49664ffba3b9",
+        "name": "المجموعة A",
+        "team_ids": [
+          "38f77290-660f-49e1-abe0-2146cd80e3a2",
+          "d4f4bc88-6fd0-47a1-9471-8b9cefe3810c",
+          "d6c36b47-1121-472d-a28d-3317ce5f4932",
+          "7e463845-8f26-4a41-bd43-58668f2d732a"
+        ]
+      },
+      "0155e494-c60e-421c-858f-84408e11f14d": {
+        "id": "0155e494-c60e-421c-858f-84408e11f14d",
+        "name": "المجموعة B",
+        "team_ids": [
+          "c2d3b22f-8a9c-4274-bb7a-272f97c39fb8",
+          "ad208e6c-e3a8-4487-a0d5-dfdc4ed5842e",
+          "c476e21a-dbc9-46cd-99df-cc8956343f22",
+          "27d47ec4-a186-4e00-a82b-328159787160"
+        ]
+      },
+      "b786645a-9a8a-4784-8a8b-1138f9517a5e": {
+        "id": "b786645a-9a8a-4784-8a8b-1138f9517a5e",
+        "name": "المجموعة C",
+        "team_ids": [
+          "217fe051-d67e-4106-b318-1439b42b1cdc",
+          "f1b06be5-156e-474d-9112-f0793508013a",
+          "70ab3ef1-ee18-467a-a28a-7deba6fc309d"
+        ]
+      }
+    },
+    "matches": {
+      "48b7e9f2-4f23-4a6d-8f4e-7ddded7e6f28": {
+        "id": "48b7e9f2-4f23-4a6d-8f4e-7ddded7e6f28",
+        "team1_id": "38f77290-660f-49e1-abe0-2146cd80e3a2",
+        "team2_id": "d4f4bc88-6fd0-47a1-9471-8b9cefe3810c",
+        "team1_score": 1,
+        "team2_score": 0,
+        "status": "مكتملة",
+        "group_id": "bea4bf0f-1677-4dd6-8fea-49664ffba3b9",
+        "round_type": "group"
+      },
+      "5edea4c7-e7e3-4f6f-af21-71eb87142e2f": {
+        "id": "5edea4c7-e7e3-4f6f-af21-71eb87142e2f",
+        "team1_id": "38f77290-660f-49e1-abe0-2146cd80e3a2",
+        "team2_id": "d6c36b47-1121-472d-a28d-3317ce5f4932",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "bea4bf0f-1677-4dd6-8fea-49664ffba3b9",
+        "round_type": "group"
+      },
+      "2e199620-8869-49ea-995b-2355ed651367": {
+        "id": "2e199620-8869-49ea-995b-2355ed651367",
+        "team1_id": "38f77290-660f-49e1-abe0-2146cd80e3a2",
+        "team2_id": "7e463845-8f26-4a41-bd43-58668f2d732a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "bea4bf0f-1677-4dd6-8fea-49664ffba3b9",
+        "round_type": "group"
+      },
+      "3b901ff2-ea78-49ae-b3ac-aa79a08735e4": {
+        "id": "3b901ff2-ea78-49ae-b3ac-aa79a08735e4",
+        "team1_id": "d4f4bc88-6fd0-47a1-9471-8b9cefe3810c",
+        "team2_id": "d6c36b47-1121-472d-a28d-3317ce5f4932",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "bea4bf0f-1677-4dd6-8fea-49664ffba3b9",
+        "round_type": "group"
+      },
+      "e0ed3d6c-740f-40ec-ae4f-0648a9d503c3": {
+        "id": "e0ed3d6c-740f-40ec-ae4f-0648a9d503c3",
+        "team1_id": "d4f4bc88-6fd0-47a1-9471-8b9cefe3810c",
+        "team2_id": "7e463845-8f26-4a41-bd43-58668f2d732a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "bea4bf0f-1677-4dd6-8fea-49664ffba3b9",
+        "round_type": "group"
+      },
+      "3340f0be-5c50-48d2-964c-8d55de63e3ac": {
+        "id": "3340f0be-5c50-48d2-964c-8d55de63e3ac",
+        "team1_id": "d6c36b47-1121-472d-a28d-3317ce5f4932",
+        "team2_id": "7e463845-8f26-4a41-bd43-58668f2d732a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "bea4bf0f-1677-4dd6-8fea-49664ffba3b9",
+        "round_type": "group"
+      },
+      "828a7020-2592-4247-9fca-f724e85715a7": {
+        "id": "828a7020-2592-4247-9fca-f724e85715a7",
+        "team1_id": "c2d3b22f-8a9c-4274-bb7a-272f97c39fb8",
+        "team2_id": "ad208e6c-e3a8-4487-a0d5-dfdc4ed5842e",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "0155e494-c60e-421c-858f-84408e11f14d",
+        "round_type": "group"
+      },
+      "1b2d0b88-6000-4099-9b73-297add2d1080": {
+        "id": "1b2d0b88-6000-4099-9b73-297add2d1080",
+        "team1_id": "c2d3b22f-8a9c-4274-bb7a-272f97c39fb8",
+        "team2_id": "c476e21a-dbc9-46cd-99df-cc8956343f22",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "0155e494-c60e-421c-858f-84408e11f14d",
+        "round_type": "group"
+      },
+      "4334667e-872c-47fb-b8a5-95922dcb9187": {
+        "id": "4334667e-872c-47fb-b8a5-95922dcb9187",
+        "team1_id": "c2d3b22f-8a9c-4274-bb7a-272f97c39fb8",
+        "team2_id": "27d47ec4-a186-4e00-a82b-328159787160",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "0155e494-c60e-421c-858f-84408e11f14d",
+        "round_type": "group"
+      },
+      "a07a07b0-0494-43ac-bf5c-90b7b1194448": {
+        "id": "a07a07b0-0494-43ac-bf5c-90b7b1194448",
+        "team1_id": "ad208e6c-e3a8-4487-a0d5-dfdc4ed5842e",
+        "team2_id": "c476e21a-dbc9-46cd-99df-cc8956343f22",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "0155e494-c60e-421c-858f-84408e11f14d",
+        "round_type": "group"
+      },
+      "b9ab55ef-a153-4600-83c7-6b74e8bcc39c": {
+        "id": "b9ab55ef-a153-4600-83c7-6b74e8bcc39c",
+        "team1_id": "ad208e6c-e3a8-4487-a0d5-dfdc4ed5842e",
+        "team2_id": "27d47ec4-a186-4e00-a82b-328159787160",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "0155e494-c60e-421c-858f-84408e11f14d",
+        "round_type": "group"
+      },
+      "2b389517-2c48-4980-b48d-a2f3cce3bd29": {
+        "id": "2b389517-2c48-4980-b48d-a2f3cce3bd29",
+        "team1_id": "c476e21a-dbc9-46cd-99df-cc8956343f22",
+        "team2_id": "27d47ec4-a186-4e00-a82b-328159787160",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "0155e494-c60e-421c-858f-84408e11f14d",
+        "round_type": "group"
+      },
+      "7504bcfe-03fe-4ced-a70a-0554e4b6e940": {
+        "id": "7504bcfe-03fe-4ced-a70a-0554e4b6e940",
+        "team1_id": "217fe051-d67e-4106-b318-1439b42b1cdc",
+        "team2_id": "f1b06be5-156e-474d-9112-f0793508013a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "b786645a-9a8a-4784-8a8b-1138f9517a5e",
+        "round_type": "group"
+      },
+      "0ce5ec35-8d2c-48b2-986c-6a45cf3d51f9": {
+        "id": "0ce5ec35-8d2c-48b2-986c-6a45cf3d51f9",
+        "team1_id": "217fe051-d67e-4106-b318-1439b42b1cdc",
+        "team2_id": "70ab3ef1-ee18-467a-a28a-7deba6fc309d",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "b786645a-9a8a-4784-8a8b-1138f9517a5e",
+        "round_type": "group"
+      },
+      "352e9ef8-79b7-44f5-913a-7ec53ce0f9d4": {
+        "id": "352e9ef8-79b7-44f5-913a-7ec53ce0f9d4",
+        "team1_id": "f1b06be5-156e-474d-9112-f0793508013a",
+        "team2_id": "70ab3ef1-ee18-467a-a28a-7deba6fc309d",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "b786645a-9a8a-4784-8a8b-1138f9517a5e",
+        "round_type": "group"
+      }
+    },
+    "knockout_matches": {}
+  },
+  "8d90811b-00c5-498f-8d9d-b52becdee0a1": {
+    "id": "8d90811b-00c5-498f-8d9d-b52becdee0a1",
+    "name": "سلة",
+    "sport_type": "كرة سلة",
+    "is_active": true,
+    "teams": {
+      "7f0b2d5a-6d7b-488f-83ea-fe533878a3b3": {
+        "id": "7f0b2d5a-6d7b-488f-83ea-fe533878a3b3",
+        "name": "1",
+        "sport_type": "كرة سلة"
+      },
+      "1bf6284c-73a2-41eb-a36d-46a19da38b67": {
+        "id": "1bf6284c-73a2-41eb-a36d-46a19da38b67",
+        "name": "2",
+        "sport_type": "كرة سلة"
+      },
+      "63785341-7c67-4527-aa6e-7cc013995aab": {
+        "id": "63785341-7c67-4527-aa6e-7cc013995aab",
+        "name": "3",
+        "sport_type": "كرة سلة"
+      },
+      "d87ccd90-73c0-4e2b-b7d1-86461ad8da80": {
+        "id": "d87ccd90-73c0-4e2b-b7d1-86461ad8da80",
+        "name": "4",
+        "sport_type": "كرة سلة"
+      },
+      "5c576f18-58a6-430a-af44-8a5ecaa404a8": {
+        "id": "5c576f18-58a6-430a-af44-8a5ecaa404a8",
+        "name": "5",
+        "sport_type": "كرة سلة"
+      },
+      "0c491406-1e20-4cd5-9ca8-1f9f13a58c98": {
+        "id": "0c491406-1e20-4cd5-9ca8-1f9f13a58c98",
+        "name": "6",
+        "sport_type": "كرة سلة"
+      },
+      "42ca6370-4ee2-4635-9044-ea0f86fbbc20": {
+        "id": "42ca6370-4ee2-4635-9044-ea0f86fbbc20",
+        "name": "7",
+        "sport_type": "كرة سلة"
+      },
+      "8553f2a5-443d-4299-bd94-30e82831a6bd": {
+        "id": "8553f2a5-443d-4299-bd94-30e82831a6bd",
+        "name": "8",
+        "sport_type": "كرة سلة"
+      },
+      "e85e3f01-f66e-4ea7-a9a8-26eb73bcbc24": {
+        "id": "e85e3f01-f66e-4ea7-a9a8-26eb73bcbc24",
+        "name": "9",
+        "sport_type": "كرة سلة"
+      },
+      "83493fa9-969e-44e1-b0f9-4d4587baf3eb": {
+        "id": "83493fa9-969e-44e1-b0f9-4d4587baf3eb",
+        "name": "10",
+        "sport_type": "كرة سلة"
+      },
+      "8717194e-febf-4d1b-94f9-3d66dda39168": {
+        "id": "8717194e-febf-4d1b-94f9-3d66dda39168",
+        "name": "11",
+        "sport_type": "كرة سلة"
+      },
+      "6b1860b5-94e6-4715-947f-f7f2f2b73506": {
+        "id": "6b1860b5-94e6-4715-947f-f7f2f2b73506",
+        "name": "12",
+        "sport_type": "كرة سلة"
+      },
+      "b6041e79-b6b0-461c-a2e0-ca7c0033c802": {
+        "id": "b6041e79-b6b0-461c-a2e0-ca7c0033c802",
+        "name": "13",
+        "sport_type": "كرة سلة"
+      },
+      "88c99025-fbca-4d80-a6e5-4af15f989ab8": {
+        "id": "88c99025-fbca-4d80-a6e5-4af15f989ab8",
+        "name": "14",
+        "sport_type": "كرة سلة"
+      },
+      "8abacfc6-f387-47e5-8a13-af6d906b7a2a": {
+        "id": "8abacfc6-f387-47e5-8a13-af6d906b7a2a",
+        "name": "15",
+        "sport_type": "كرة سلة"
+      }
+    },
+    "groups": {
+      "c008a13c-4a45-4aa1-9ef4-68d0385b8789": {
+        "id": "c008a13c-4a45-4aa1-9ef4-68d0385b8789",
+        "name": "المجموعة A",
+        "team_ids": [
+          "7f0b2d5a-6d7b-488f-83ea-fe533878a3b3",
+          "5c576f18-58a6-430a-af44-8a5ecaa404a8",
+          "e85e3f01-f66e-4ea7-a9a8-26eb73bcbc24",
+          "b6041e79-b6b0-461c-a2e0-ca7c0033c802"
+        ]
+      },
+      "8425be18-4fd4-4942-b557-822ccd70b0d4": {
+        "id": "8425be18-4fd4-4942-b557-822ccd70b0d4",
+        "name": "المجموعة B",
+        "team_ids": [
+          "1bf6284c-73a2-41eb-a36d-46a19da38b67",
+          "0c491406-1e20-4cd5-9ca8-1f9f13a58c98",
+          "83493fa9-969e-44e1-b0f9-4d4587baf3eb",
+          "88c99025-fbca-4d80-a6e5-4af15f989ab8"
+        ]
+      },
+      "6029e1d8-92e7-424c-b44b-67b71f59d617": {
+        "id": "6029e1d8-92e7-424c-b44b-67b71f59d617",
+        "name": "المجموعة C",
+        "team_ids": [
+          "63785341-7c67-4527-aa6e-7cc013995aab",
+          "42ca6370-4ee2-4635-9044-ea0f86fbbc20",
+          "8717194e-febf-4d1b-94f9-3d66dda39168",
+          "8abacfc6-f387-47e5-8a13-af6d906b7a2a"
+        ]
+      },
+      "049f7575-6173-40be-8b21-faee780eaca4": {
+        "id": "049f7575-6173-40be-8b21-faee780eaca4",
+        "name": "المجموعة D",
+        "team_ids": [
+          "d87ccd90-73c0-4e2b-b7d1-86461ad8da80",
+          "8553f2a5-443d-4299-bd94-30e82831a6bd",
+          "6b1860b5-94e6-4715-947f-f7f2f2b73506"
+        ]
+      }
+    },
+    "matches": {
+      "358bbe4d-4111-4129-8298-a32de258509c": {
+        "id": "358bbe4d-4111-4129-8298-a32de258509c",
+        "team1_id": "7f0b2d5a-6d7b-488f-83ea-fe533878a3b3",
+        "team2_id": "5c576f18-58a6-430a-af44-8a5ecaa404a8",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "c008a13c-4a45-4aa1-9ef4-68d0385b8789",
+        "round_type": "group"
+      },
+      "24317aa5-7ef8-40b0-aa7c-d194810aa6f4": {
+        "id": "24317aa5-7ef8-40b0-aa7c-d194810aa6f4",
+        "team1_id": "7f0b2d5a-6d7b-488f-83ea-fe533878a3b3",
+        "team2_id": "e85e3f01-f66e-4ea7-a9a8-26eb73bcbc24",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "c008a13c-4a45-4aa1-9ef4-68d0385b8789",
+        "round_type": "group"
+      },
+      "4b69e6a8-8255-4ee9-9fac-94c6a74344ea": {
+        "id": "4b69e6a8-8255-4ee9-9fac-94c6a74344ea",
+        "team1_id": "7f0b2d5a-6d7b-488f-83ea-fe533878a3b3",
+        "team2_id": "b6041e79-b6b0-461c-a2e0-ca7c0033c802",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "c008a13c-4a45-4aa1-9ef4-68d0385b8789",
+        "round_type": "group"
+      },
+      "ef0e9085-34f6-4183-966b-1a532404df47": {
+        "id": "ef0e9085-34f6-4183-966b-1a532404df47",
+        "team1_id": "5c576f18-58a6-430a-af44-8a5ecaa404a8",
+        "team2_id": "e85e3f01-f66e-4ea7-a9a8-26eb73bcbc24",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "c008a13c-4a45-4aa1-9ef4-68d0385b8789",
+        "round_type": "group"
+      },
+      "f073d334-85d8-4e7f-ad7b-354964b9c7d6": {
+        "id": "f073d334-85d8-4e7f-ad7b-354964b9c7d6",
+        "team1_id": "5c576f18-58a6-430a-af44-8a5ecaa404a8",
+        "team2_id": "b6041e79-b6b0-461c-a2e0-ca7c0033c802",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "c008a13c-4a45-4aa1-9ef4-68d0385b8789",
+        "round_type": "group"
+      },
+      "e429370a-5782-4e45-be30-aa1e53bf83d4": {
+        "id": "e429370a-5782-4e45-be30-aa1e53bf83d4",
+        "team1_id": "e85e3f01-f66e-4ea7-a9a8-26eb73bcbc24",
+        "team2_id": "b6041e79-b6b0-461c-a2e0-ca7c0033c802",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "c008a13c-4a45-4aa1-9ef4-68d0385b8789",
+        "round_type": "group"
+      },
+      "13a8d4b5-05fe-4f37-a5a8-ff12e02fcb08": {
+        "id": "13a8d4b5-05fe-4f37-a5a8-ff12e02fcb08",
+        "team1_id": "1bf6284c-73a2-41eb-a36d-46a19da38b67",
+        "team2_id": "0c491406-1e20-4cd5-9ca8-1f9f13a58c98",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "8425be18-4fd4-4942-b557-822ccd70b0d4",
+        "round_type": "group"
+      },
+      "3e1efc0c-8463-41c9-adc1-96c0992a8a60": {
+        "id": "3e1efc0c-8463-41c9-adc1-96c0992a8a60",
+        "team1_id": "1bf6284c-73a2-41eb-a36d-46a19da38b67",
+        "team2_id": "83493fa9-969e-44e1-b0f9-4d4587baf3eb",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "8425be18-4fd4-4942-b557-822ccd70b0d4",
+        "round_type": "group"
+      },
+      "3a3da221-1a13-4be1-af68-84eb9e94c264": {
+        "id": "3a3da221-1a13-4be1-af68-84eb9e94c264",
+        "team1_id": "1bf6284c-73a2-41eb-a36d-46a19da38b67",
+        "team2_id": "88c99025-fbca-4d80-a6e5-4af15f989ab8",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "8425be18-4fd4-4942-b557-822ccd70b0d4",
+        "round_type": "group"
+      },
+      "10d10f7b-08b6-48e1-819e-4b8d113eec90": {
+        "id": "10d10f7b-08b6-48e1-819e-4b8d113eec90",
+        "team1_id": "0c491406-1e20-4cd5-9ca8-1f9f13a58c98",
+        "team2_id": "83493fa9-969e-44e1-b0f9-4d4587baf3eb",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "8425be18-4fd4-4942-b557-822ccd70b0d4",
+        "round_type": "group"
+      },
+      "b575cc84-4385-42d5-b7d0-5b7caed98e38": {
+        "id": "b575cc84-4385-42d5-b7d0-5b7caed98e38",
+        "team1_id": "0c491406-1e20-4cd5-9ca8-1f9f13a58c98",
+        "team2_id": "88c99025-fbca-4d80-a6e5-4af15f989ab8",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "8425be18-4fd4-4942-b557-822ccd70b0d4",
+        "round_type": "group"
+      },
+      "47c56f92-46f6-49f8-ad44-42c7264dabdb": {
+        "id": "47c56f92-46f6-49f8-ad44-42c7264dabdb",
+        "team1_id": "83493fa9-969e-44e1-b0f9-4d4587baf3eb",
+        "team2_id": "88c99025-fbca-4d80-a6e5-4af15f989ab8",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "8425be18-4fd4-4942-b557-822ccd70b0d4",
+        "round_type": "group"
+      },
+      "890c4aa7-d338-4986-9e5b-e9855bd5a33a": {
+        "id": "890c4aa7-d338-4986-9e5b-e9855bd5a33a",
+        "team1_id": "63785341-7c67-4527-aa6e-7cc013995aab",
+        "team2_id": "42ca6370-4ee2-4635-9044-ea0f86fbbc20",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "6029e1d8-92e7-424c-b44b-67b71f59d617",
+        "round_type": "group"
+      },
+      "c6041da6-12cd-4a6e-8264-8deccaea9522": {
+        "id": "c6041da6-12cd-4a6e-8264-8deccaea9522",
+        "team1_id": "63785341-7c67-4527-aa6e-7cc013995aab",
+        "team2_id": "8717194e-febf-4d1b-94f9-3d66dda39168",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "6029e1d8-92e7-424c-b44b-67b71f59d617",
+        "round_type": "group"
+      },
+      "2c0530cc-bf2f-494f-b991-f499053ff4f4": {
+        "id": "2c0530cc-bf2f-494f-b991-f499053ff4f4",
+        "team1_id": "63785341-7c67-4527-aa6e-7cc013995aab",
+        "team2_id": "8abacfc6-f387-47e5-8a13-af6d906b7a2a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "6029e1d8-92e7-424c-b44b-67b71f59d617",
+        "round_type": "group"
+      },
+      "714386e1-e12e-4964-b945-47e2427542a0": {
+        "id": "714386e1-e12e-4964-b945-47e2427542a0",
+        "team1_id": "42ca6370-4ee2-4635-9044-ea0f86fbbc20",
+        "team2_id": "8717194e-febf-4d1b-94f9-3d66dda39168",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "6029e1d8-92e7-424c-b44b-67b71f59d617",
+        "round_type": "group"
+      },
+      "ae7683a2-2f72-40b8-9659-21aaeaeb7223": {
+        "id": "ae7683a2-2f72-40b8-9659-21aaeaeb7223",
+        "team1_id": "42ca6370-4ee2-4635-9044-ea0f86fbbc20",
+        "team2_id": "8abacfc6-f387-47e5-8a13-af6d906b7a2a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "6029e1d8-92e7-424c-b44b-67b71f59d617",
+        "round_type": "group"
+      },
+      "3722381a-061b-4c1e-bae6-72477d25d499": {
+        "id": "3722381a-061b-4c1e-bae6-72477d25d499",
+        "team1_id": "8717194e-febf-4d1b-94f9-3d66dda39168",
+        "team2_id": "8abacfc6-f387-47e5-8a13-af6d906b7a2a",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "6029e1d8-92e7-424c-b44b-67b71f59d617",
+        "round_type": "group"
+      },
+      "24c26ccf-aee5-4ecf-bc07-0fcf4e24f228": {
+        "id": "24c26ccf-aee5-4ecf-bc07-0fcf4e24f228",
+        "team1_id": "d87ccd90-73c0-4e2b-b7d1-86461ad8da80",
+        "team2_id": "8553f2a5-443d-4299-bd94-30e82831a6bd",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "049f7575-6173-40be-8b21-faee780eaca4",
+        "round_type": "group"
+      },
+      "1c0c77ad-1948-4140-8405-a33d92eb236b": {
+        "id": "1c0c77ad-1948-4140-8405-a33d92eb236b",
+        "team1_id": "d87ccd90-73c0-4e2b-b7d1-86461ad8da80",
+        "team2_id": "6b1860b5-94e6-4715-947f-f7f2f2b73506",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "049f7575-6173-40be-8b21-faee780eaca4",
+        "round_type": "group"
+      },
+      "0c0b7fd8-5cf4-4f4f-94f8-fb556bba86ac": {
+        "id": "0c0b7fd8-5cf4-4f4f-94f8-fb556bba86ac",
+        "team1_id": "8553f2a5-443d-4299-bd94-30e82831a6bd",
+        "team2_id": "6b1860b5-94e6-4715-947f-f7f2f2b73506",
+        "team1_score": null,
+        "team2_score": null,
+        "status": "معلقة",
+        "group_id": "049f7575-6173-40be-8b21-faee780eaca4",
+        "round_type": "group"
+      }
+    },
+    "knockout_matches": {}
+  }
+}

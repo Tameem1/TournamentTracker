@@ -118,6 +118,37 @@ class Tournament:
             
         return True
     
+    def create_custom_groups(self, group_sizes: list[int]):
+        """Create groups with custom sizes for each group"""
+        self.groups.clear()
+        team_list = list(self.teams.keys())
+        
+        if len(team_list) < 3:
+            return False
+        
+        # Validate group sizes
+        total_teams_needed = sum(group_sizes)
+        if total_teams_needed != len(team_list):
+            return False
+        
+        # Create groups with specified sizes
+        team_index = 0
+        for i, size in enumerate(group_sizes):
+            group = Group(
+                id=str(uuid.uuid4()),
+                name=f"المجموعة {chr(65 + i)}"  # Group A, B, C...
+            )
+            
+            # Assign teams to this group
+            for j in range(size):
+                if team_index < len(team_list):
+                    group.team_ids.append(team_list[team_index])
+                    team_index += 1
+            
+            self.groups[group.id] = group
+            
+        return True
+    
     def generate_group_matches(self):
         """Generate all possible matches within each group"""
         self.matches.clear()

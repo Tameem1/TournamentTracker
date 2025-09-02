@@ -111,6 +111,22 @@ class TournamentManager:
             st.error(f"خطأ في إنشاء المجموعات: {e}")
             return False
     
+    def create_custom_groups_for_tournament(self, tournament_id: str, group_sizes: list[int]) -> bool:
+        """Create groups with custom sizes for tournament"""
+        try:
+            if tournament_id not in st.session_state.tournaments:
+                return False
+            
+            tournament = st.session_state.tournaments[tournament_id]
+            success = tournament.create_custom_groups(group_sizes)
+            if success:
+                tournament.generate_group_matches()
+                self.save_data()
+            return success
+        except Exception as e:
+            st.error(f"خطأ في إنشاء المجموعات المخصصة: {e}")
+            return False
+    
     def update_match_result(self, tournament_id: str, match_id: str, team1_score: int, team2_score: int) -> bool:
         """Update match result"""
         try:
@@ -270,9 +286,8 @@ class TournamentManager:
         if tournament.teams:
             st.subheader("الفرق المسجلة")
             search_query = st.text_input("ابحث عن فريق", key="team_search_manage")
-            # Sort and filter
-            teams_sorted = sorted(tournament.teams.items(), key=lambda kv: kv[1].name)
-            for team_id, team in teams_sorted:
+            # Preserve insertion order; only filter
+            for team_id, team in tournament.teams.items():
                 if search_query and search_query.strip() not in team.name:
                     continue
                 col1, col2 = st.columns([3, 1])
@@ -290,18 +305,54 @@ class TournamentManager:
         st.subheader("إدارة المجموعات")
         
         if len(tournament.teams) >= 3:
-            col1, col2 = st.columns(2)
+            group_mode = st.radio("طريقة إنشاء المجموعات", ["حجم موحد", "أحجام مخصصة"], horizontal=True, key="group_mode_manage")
             
-            with col1:
-                teams_per_group = st.selectbox("عدد الفرق في كل مجموعة", [3, 4], index=1)
-            
-            with col2:
-                if st.button("إنشاء المجموعات", type="primary", use_container_width=True):
-                    if self.create_groups_for_tournament(tournament_id, teams_per_group):
-                        st.success("تم إنشاء المجموعات بنجاح!")
-                        st.rerun()
-                    else:
-                        st.error("فشل في إنشاء المجموعات")
+            if group_mode == "حجم موحد":
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    teams_per_group = st.selectbox("عدد الفرق في كل مجموعة", [2, 3, 4, 5, 6], index=2)
+                
+                with col2:
+                    if st.button("إنشاء المجموعات", type="primary", use_container_width=True):
+                        if self.create_groups_for_tournament(tournament_id, teams_per_group):
+                            st.success("تم إنشاء المجموعات بنجاح!")
+                            st.rerun()
+                        else:
+                            st.error("فشل في إنشاء المجموعات")
+            else:
+                st.write(f"**إجمالي الفرق:** {len(tournament.teams)}")
+                st.caption("أدخل عدد الفرق لكل مجموعة (يجب أن يساوي إجمالي الفرق)")
+                
+                # Dynamic group size inputs
+                num_groups = st.number_input("عدد المجموعات", min_value=2, max_value=len(tournament.teams), value=2, key="num_groups_manage")
+                
+                group_sizes = []
+                cols = st.columns(min(4, num_groups))
+                
+                for i in range(num_groups):
+                    with cols[i % len(cols)]:
+                        size = st.number_input(
+                            f"المجموعة {chr(65 + i)}", 
+                            min_value=1, 
+                            max_value=len(tournament.teams), 
+                            value=2 if i < 2 else 1,
+                            key=f"group_size_manage_{i}"
+                        )
+                        group_sizes.append(size)
+                
+                total_specified = sum(group_sizes)
+                st.write(f"**المجموع المحدد:** {total_specified} / {len(tournament.teams)}")
+                
+                if total_specified == len(tournament.teams):
+                    if st.button("إنشاء المجموعات المخصصة", type="primary", use_container_width=True):
+                        if self.create_custom_groups_for_tournament(tournament_id, group_sizes):
+                            st.success("تم إنشاء المجموعات المخصصة بنجاح!")
+                            st.rerun()
+                        else:
+                            st.error("فشل في إنشاء المجموعات المخصصة")
+                else:
+                    st.error(f"المجموع يجب أن يساوي {len(tournament.teams)}")
         else:
             st.info("يجب إضافة 3 فرق على الأقل لإنشاء المجموعات")
         
