@@ -1,5 +1,8 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import time
+import random
+import urllib.parse
 from tournament_manager import TournamentManager
 from utils import get_sport_icon, get_round_name, get_team_name_label
 from models import SportType
@@ -26,6 +29,580 @@ if 'current_slide' not in st.session_state:
     st.session_state.current_slide = 0
 if 'auto_mode_running' not in st.session_state:
     st.session_state.auto_mode_running = False
+if 'auto_slides_seed' not in st.session_state:
+    st.session_state.auto_slides_seed = 0
+
+# ---------- Global styling & sidebar ----------
+def match_completed(m):
+    try:
+        status_val = m.status
+        # Handle Enum or raw string
+        is_done = (str(getattr(status_val, 'value', status_val)) == "مكتملة")
+        return is_done and m.team1_score is not None and m.team2_score is not None
+    except Exception:
+        return False
+
+def inject_global_styles():
+    st.markdown(
+        """
+        <style>
+        :root {
+            --brand-primary: #1f4e79;
+            --brand-primary-700: #153956;
+            --surface: #ffffff;
+            --surface-muted: #f8fafc;
+            --border: #e5e7eb;
+            --text: #111111;
+            --text-strong: #0f172a;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap');
+        html, body, [class*="css"] {
+            direction: rtl;
+            font-family: 'Cairo', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+        }
+        /* Core brand overrides */
+        .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: var(--text-strong); }
+        div.stButton>button[kind="primary"], div.stButton>button[data-baseweb="button"] {
+            background: var(--brand-primary) !important;
+            border-color: var(--brand-primary) !important;
+            color: #ffffff !important;
+        }
+        div.stButton>button[kind="secondary"] {
+            border-color: var(--brand-primary) !important;
+            color: var(--brand-primary) !important;
+        }
+        div.stButton>button { border-radius: 10px !important; }
+        /* Buttons */
+        button[kind="primary"], button[data-baseweb="button"] { border-radius: 10px !important; }
+        /* Cards */
+        .ux-card { 
+            border-radius: 12px; 
+            padding: 1rem; 
+            background: var(--surface); 
+            border: 1px solid var(--border); 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            color: var(--text);
+        }
+        .ux-card-accent {
+            background: linear-gradient(180deg, var(--surface-muted), var(--surface));
+        }
+        .ux-card, .ux-card * { color: var(--text) !important; }
+        .ux-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.08); border-color: var(--border); }
+        .ux-muted { color: #6c757d; }
+        .ux-section-title { color: var(--brand-primary); margin: 0.5rem 0 1rem 0; }
+        .chip { display:inline-block; padding: 2px 8px; border-radius:999px; background:#eef2f7; color:var(--text); font-size:12px; border:1px solid var(--border); }
+        .chip-accent { background: rgba(31,78,121,0.08); color: var(--brand-primary); border-color: rgba(31,78,121,0.25); }
+        .chip-green { background:#e9fbe7; border-color:#b7f0b0; color:#0a5c2b; }
+        .chip-amber { background:#fff8e1; border-color:#ffe08a; color:#7a5200; }
+        /* Professional tables */
+        .pro-table { width:100%; border-collapse:separate; border-spacing:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+        .pro-table th, .pro-table td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:center; color:var(--text); }
+        .pro-table th { background:var(--surface-muted); font-weight:800; color:var(--text-strong); }
+        .pro-table tbody tr:nth-child(even) { background:#f9fafb; }
+        .pro-table tr:hover { background:#f5f7fa; }
+        .section-title { text-align:center; color:var(--brand-primary); margin: 1rem 0 0.5rem; font-weight:800; }
+        .subsection-title { text-align:center; color:#111111; margin: 0.5rem 0; font-weight:700; }
+
+        /* Inputs & widgets */
+        .stTextInput input, .stNumberInput input, .stSelectbox select, .stMultiSelect [role="combobox"], textarea {
+            border-radius: 10px !important;
+        }
+        [data-testid="stMetricValue"] { color: var(--brand-primary) !important; }
+        [data-testid="stSidebar"] { background: var(--surface-muted) !important; }
+        /* Remove top whitespace globally */
+        html, body { margin-top: 0 !important; padding-top: 0 !important; }
+        [data-testid="stHeader"], header { display: none !important; height: 0 !important; }
+        [data-testid="stToolbar"] { display: none !important; }
+        [data-testid="stAppViewContainer"] { padding-top: 0 !important; }
+        .block-container { padding-top: 0 !important; margin-top: 0 !important; }
+        .block-container > :first-child { margin-top: 0 !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def _sport_background_css(sport_name: str) -> str:
+    palettes = {
+        "كرة قدم": "linear-gradient(135deg, #0f9d58 0%, #0b7a43 100%)",
+        "كرة سلة": "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+        "تنس": "linear-gradient(135deg, #84cc16 0%, #65a30d 100%)",
+        "بينغ بونغ": "linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)",
+    }
+    return palettes.get(sport_name, "linear-gradient(135deg, #1f4e79 0%, #153956 100%)")
+
+def _sport_accent_color(sport_name: str) -> str:
+    """Primary accent color per sport for consistent theming."""
+    accents = {
+        "كرة قدم": "#0f9d58",
+        "كرة سلة": "#f97316",
+        "تنس": "#84cc16",
+        "بينغ بونغ": "#0ea5e9",
+    }
+    return accents.get(sport_name, "#1f4e79")
+
+def _sport_tile_data_uri(emoji: str) -> str:
+    # SVG tile with faint emoji watermark
+    svg = f"""
+    <svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>
+      <rect width='120' height='120' fill='none'/>
+      <text x='60' y='70' font-size='64' text-anchor='middle' opacity='0.09'>{emoji}</text>
+    </svg>
+    """.strip()
+    encoded = urllib.parse.quote(svg)
+    return f"url('data:image/svg+xml;utf8,{encoded}')"
+
+def _sport_scene_tile_data_uri(sport_name: str) -> str:
+    # Subtle field/court motifs per sport
+    if sport_name == "كرة قدم":
+        svg = """
+        <svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>
+          <rect width='240' height='240' fill='none'/>
+          <rect x='10' y='10' width='220' height='220' fill='none' stroke='white' stroke-opacity='0.12' stroke-width='2'/>
+          <circle cx='120' cy='120' r='30' fill='none' stroke='white' stroke-opacity='0.12' stroke-width='2'/>
+          <line x1='120' y1='10' x2='120' y2='230' stroke='white' stroke-opacity='0.12' stroke-width='2'/>
+        </svg>
+        """
+    elif sport_name == "كرة سلة":
+        svg = """
+        <svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>
+          <rect width='240' height='240' fill='none'/>
+          <path d='M0,80 L240,80 M0,160 L240,160' stroke='white' stroke-opacity='0.10' stroke-width='3'/>
+          <circle cx='120' cy='120' r='60' fill='none' stroke='white' stroke-opacity='0.08' stroke-width='3'/>
+        </svg>
+        """
+    elif sport_name == "تنس":
+        svg = """
+        <svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>
+          <rect width='240' height='240' fill='none'/>
+          <rect x='20' y='20' width='200' height='200' fill='none' stroke='white' stroke-opacity='0.14' stroke-width='2'/>
+          <line x1='120' y1='20' x2='120' y2='220' stroke='white' stroke-opacity='0.14' stroke-width='2'/>
+          <line x1='20' y1='120' x2='220' y2='120' stroke='white' stroke-opacity='0.14' stroke-width='2'/>
+        </svg>
+        """
+    else:  # بينغ بونغ
+        svg = """
+        <svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>
+          <rect width='240' height='240' fill='none'/>
+          <path d='M0,0 L240,240 M240,0 L0,240' stroke='white' stroke-opacity='0.06' stroke-width='2'/>
+          <circle cx='60' cy='60' r='12' fill='white' fill-opacity='0.06'/>
+          <circle cx='180' cy='180' r='12' fill='white' fill-opacity='0.06'/>
+        </svg>
+        """
+    encoded = urllib.parse.quote(svg.strip())
+    return f"url('data:image/svg+xml;utf8,{encoded}')"
+
+def apply_sport_background(sport_name: str, fullscreen: bool = False):
+    bg = _sport_background_css(sport_name)
+    # Use sport icon as watermarked pattern
+    from utils import get_sport_icon
+    emoji = get_sport_icon(sport_name)
+    tile = _sport_tile_data_uri(emoji)
+    scene = _sport_scene_tile_data_uri(sport_name)
+    accent = _sport_accent_color(sport_name)
+    if fullscreen:
+        st.markdown(
+            f"""
+            <style>
+            :root {{ --brand-primary: {accent}; }}
+            html, body {{ height:100%; overflow:hidden; }}
+            body {{ background-image: {bg}, {scene}, {tile}; background-repeat: no-repeat, repeat, repeat; background-size: cover, 240px 240px, 120px 120px; background-attachment: fixed, fixed, fixed; background-position: center top, left top, left top; }}
+            .block-container {{ background: rgba(255,255,255,0.85); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.10); backdrop-filter: blur(1.5px); }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        # Embedded mode: keep normal page chrome and scrolling; lighter overlay
+        st.markdown(
+            f"""
+            <style>
+            :root {{ --brand-primary: {accent}; }}
+            body {{ background-image: {bg}, {scene}, {tile}; background-repeat: no-repeat, repeat, repeat; background-size: cover, 240px 240px, 120px 120px; background-attachment: fixed, fixed, fixed; background-position: center top, left top, left top; }}
+            .block-container {{ background: rgba(255,255,255,0.92); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+def apply_fullscreen_chrome():
+    """Hide sidebar and Streamlit chrome for true fullscreen displays."""
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"], [data-testid="stToolbar"], [data-testid="stStatusWidget"] { display: none !important; }
+        #MainMenu { visibility: hidden; }
+        header { visibility: hidden; }
+        footer { visibility: hidden; }
+        [data-testid="stDecoration"] { display: none !important; }
+        .block-container { padding-top: 0; padding-bottom: 0.5rem; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def apply_compact_no_scroll(scale_percent: int = 90):
+    """Compact styling to fit all content in one screen without scrolling and hide sidebar."""
+    scale = max(50, min(100, int(scale_percent)))
+    st.markdown(
+        f"""
+        <style>
+        [data-testid="stSidebar"], [data-testid="stToolbar"], [data-testid="stStatusWidget"], header, footer, [data-testid="stDecoration"] {{ display: none !important; }}
+        html, body {{ overflow: hidden !important; }}
+        .block-container {{ padding-top: 0.25rem; padding-bottom: 0.25rem; height: 100vh; overflow: hidden; transform: scale({scale/100}); transform-origin: top center; }}
+        .pro-table th, .pro-table td {{ padding: 6px 8px; font-size: 12px; }}
+        .section-title {{ margin: 0.25rem 0; font-size: 1rem; }}
+        .subsection-title {{ margin: 0.25rem 0; font-size: 0.95rem; }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def _build_auto_slides(tournaments_list):
+    """Build a linear list of slides: (tournament_id, kind, payload)
+    kind: 'overview' | 'groups_chunk' | 'group' | 'knockout'
+    payload: None | list[group_id] | 'semi'/'final'
+    """
+    slides = []
+    for t in tournaments_list:
+        # Build group chunks to ensure each slide fits
+        if t.groups:
+            # Estimate rows per group = standings rows + match rows
+            group_ids = list(t.groups.keys())
+            current_chunk = []
+            current_rows = 0
+            max_rows = 28  # target rows per slide
+            for gid in group_ids:
+                try:
+                    s_rows = len(t.get_group_standings(gid))
+                except Exception:
+                    s_rows = len(t.groups[gid].team_ids)
+                m_rows = sum(1 for m in t.matches.values() if m.group_id == gid)
+                g_rows = max(2, s_rows) + max(1, m_rows) + 2  # include headers/margins
+                # If adding this group would overflow the target, flush current chunk
+                if current_rows > 0 and current_rows + g_rows > max_rows:
+                    slides.append((t.id, 'groups_chunk', current_chunk))
+                    current_chunk = []
+                    current_rows = 0
+                current_chunk.append(gid)
+                current_rows += g_rows
+            if current_chunk:
+                slides.append((t.id, 'groups_chunk', current_chunk))
+        # One slide for knockout (if exists)
+        if t.knockout_matches:
+            slides.append((t.id, 'knockout', None))
+    return slides
+
+def _render_auto_slide(tournament, kind, payload):
+    """Render a single slide in fullscreen mode."""
+    # Common title
+    title = f"{get_sport_icon(tournament.sport_type.value)} {tournament.name}"
+    st.markdown(
+        f"<h1 style='text-align:center;margin:0 0 0.5rem;'>{title}</h1>",
+        unsafe_allow_html=True,
+    )
+    # Slide-specific styles (cards and list rows instead of tables)
+    st.markdown(
+        """
+        <style>
+        .slide-card { background: rgba(255,255,255,0.95); border: 1px solid var(--border); border-radius: 12px; padding: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .slide-list { display: flex; flex-direction: column; gap: 6px; }
+        .slide-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 10px; background: #ffffff; border: 1px solid var(--border); }
+        .slide-row .name { font-weight: 700; color: var(--text-strong); }
+        .slide-chip { display:inline-block; min-width: 44px; text-align:center; padding: 2px 10px; border-radius: 999px; background: rgba(31,78,121,0.08); color: var(--brand-primary); border: 1px solid rgba(31,78,121,0.25); font-weight: 800; }
+        .slide-score { display:inline-block; min-width: 72px; text-align:center; padding: 2px 12px; border-radius: 999px; background: rgba(31,78,121,0.10); color: var(--brand-primary); border: 1px solid rgba(31,78,121,0.25); font-weight: 800; }
+        .slide-rows-3 { display:grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items:center; }
+        .slide-xs { font-size: 12px; color: #6c757d; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    if kind == 'groups_chunk' and tournament.groups:
+        st.markdown(f"<div class='section-title'>🏁 دور المجموعات</div>", unsafe_allow_html=True)
+        # Grid CSS and compact table styles for slideshow
+        st.markdown(
+            """
+            <style>
+            .groups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+            .group-card { background: rgba(255,255,255,0.96); border: 1px solid var(--border); border-radius: 12px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+            .group-title { font-weight: 800; margin-bottom: 6px; color: var(--text-strong); text-align: center; }
+            .group-card .pro-table.compact th, .group-card .pro-table.compact td { padding: 6px 8px; font-size: 12px; }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        group_cards_html = []
+        for gid, group in tournament.groups.items():
+            # Standings table
+            standings = tournament.get_group_standings(gid)
+            s_rows_html = "".join([f"<tr><td>{row['team_name']}</td><td>{row['points']}</td></tr>" for row in standings])
+            if not s_rows_html:
+                s_rows_html = "<tr><td>—</td><td>0</td></tr>"
+            s_table_html = (
+                "<table class='pro-table compact'>"
+                "<thead><tr><th>الفريق</th><th>النقاط</th></tr></thead>"
+                f"<tbody>{s_rows_html}</tbody>"
+                "</table>"
+            )
+            # Matches table
+            group_matches = [m for m in tournament.matches.values() if m.group_id == gid]
+            m_rows_html = "".join([
+                f"<tr><td>{(tournament.teams.get(m.team1_id).name if m.team1_id in tournament.teams else '—')}</td><td>{(f'{m.team1_score} - {m.team2_score}' if m.is_completed else '—')}</td><td>{(tournament.teams.get(m.team2_id).name if m.team2_id in tournament.teams else '—')}</td></tr>"
+                for m in group_matches
+            ])
+            if not m_rows_html:
+                m_rows_html = "<tr><td>—</td><td>—</td><td>—</td></tr>"
+            m_table_html = (
+                "<table class='pro-table compact'>"
+                "<thead><tr><th>الفريق 1</th><th>النتيجة</th><th>الفريق 2</th></tr></thead>"
+                f"<tbody>{m_rows_html}</tbody>"
+                "</table>"
+            )
+            card_html = (
+                "<div class='group-card'>"
+                f"<div class='group-title'>{group.name}</div>"
+                "<div class='slide-xs' style='margin:2px 0 4px 0'>الترتيب</div>"
+                f"{s_table_html}"
+                "<div class='slide-xs' style='margin:8px 0 4px 0'>المباريات</div>"
+                f"{m_table_html}"
+                "</div>"
+            )
+            group_cards_html.append(card_html)
+        st.markdown(
+            """
+            <div class='groups-grid'>
+              {cards}
+            </div>
+            """.replace("{cards}", "\n".join(group_cards_html)),
+            unsafe_allow_html=True,
+        )
+    elif kind == 'group' and payload in tournament.groups:
+        group = tournament.groups[payload]
+        st.markdown(f"<div class='section-title'>🏁 {group.name}</div>", unsafe_allow_html=True)
+        standings = tournament.get_group_standings(group.id)
+        # Standings list (no tables)
+        s_rows = [
+            f"<div class='slide-row'><div class='name'>{row['team_name']}</div><div class='slide-chip'>{row['points']}</div></div>"
+            for row in standings
+        ]
+        st.markdown("""
+            <div class='slide-card'>
+              <div class='slide-list'>
+                {rows}
+              </div>
+            </div>
+        """.replace("{rows}", "\n".join(s_rows)), unsafe_allow_html=True)
+        # Matches table
+        group_matches = [m for m in tournament.matches.values() if m.group_id == group.id]
+        st.markdown(f"<div class='subsection-title'>نتائج المباريات</div>", unsafe_allow_html=True)
+        if group_matches:
+            m_rows = []
+            for m in group_matches:
+                t1 = tournament.teams.get(m.team1_id)
+                t2 = tournament.teams.get(m.team2_id)
+                n1 = t1.name if t1 else '—'
+                n2 = t2.name if t2 else '—'
+                score = f"{m.team1_score} - {m.team2_score}" if m.is_completed else "—"
+                m_rows.append(
+                    f"<div class='slide-row'><div class='name'>{n1}</div><div class='slide-score'>{score}</div><div class='name'>{n2}</div></div>"
+                )
+            st.markdown("""
+                <div class='slide-card'>
+                  <div class='slide-list'>
+                    {rows}
+                  </div>
+                </div>
+            """.replace("{rows}", "\n".join(m_rows)), unsafe_allow_html=True)
+        else:
+            st.info("لا توجد مباريات في هذه المجموعة")
+    elif kind == 'knockout':
+        st.markdown(f"<div class='section-title'>🏆 دور الإقصاء</div>", unsafe_allow_html=True)
+        rounds = {}
+        for match in tournament.knockout_matches.values():
+            rounds.setdefault(match.round_type, []).append(match)
+        for round_type in ["semi", "final"]:
+            if round_type in rounds:
+                st.markdown(f"<div class='subsection-title'>{get_round_name(round_type)}</div>", unsafe_allow_html=True)
+                k_rows = []
+                for match in rounds[round_type]:
+                    team1 = tournament.teams.get(match.team1_id)
+                    team2 = tournament.teams.get(match.team2_id)
+                    team1_name = team1.name if team1 else '—'
+                    team2_name = team2.name if team2 else '—'
+                    score = f"{match.team1_score} - {match.team2_score}" if match.is_completed else "—"
+                    k_rows.append(
+                        f"<div class='slide-row'><div class='name'>{team1_name}</div><div class='slide-score'>{score}</div><div class='name'>{team2_name}</div></div>"
+                    )
+                st.markdown("""
+                    <div class='slide-card'>
+                      <div class='slide-list'>
+                        {rows}
+                      </div>
+                    </div>
+                """.replace("{rows}", "\n".join(k_rows)), unsafe_allow_html=True)
+    else:
+        st.info("لا توجد بيانات للعرض")
+
+def _compute_overall_standings(tournament):
+    stats = {}
+    # init teams
+    for team_id, team in tournament.teams.items():
+        stats[team_id] = {
+            'team_id': team_id,
+            'team_name': team.name,
+            'played': 0,
+            'won': 0,
+            'drawn': 0,
+            'lost': 0,
+            'goals_for': 0,
+            'goals_against': 0,
+            'goal_difference': 0,
+            'points': 0,
+        }
+    # accumulate from completed group matches
+    for match in tournament.matches.values():
+        if not match.is_completed:
+            continue
+        t1 = stats.get(match.team1_id)
+        t2 = stats.get(match.team2_id)
+        if not t1 or not t2:
+            continue
+        t1['played'] += 1
+        t2['played'] += 1
+        t1['goals_for'] += match.team1_score
+        t1['goals_against'] += match.team2_score
+        t2['goals_for'] += match.team2_score
+        t2['goals_against'] += match.team1_score
+        if match.team1_score > match.team2_score:
+            t1['won'] += 1
+            t1['points'] += 3
+            t2['lost'] += 1
+        elif match.team2_score > match.team1_score:
+            t2['won'] += 1
+            t2['points'] += 3
+            t1['lost'] += 1
+        else:
+            t1['drawn'] += 1
+            t2['drawn'] += 1
+            t1['points'] += 1
+            t2['points'] += 1
+        t1['goal_difference'] = t1['goals_for'] - t1['goals_against']
+        t2['goal_difference'] = t2['goals_for'] - t2['goals_against']
+    # sort
+    return sorted(stats.values(), key=lambda x: (x['points'], x['goal_difference'], x['goals_for']), reverse=True)
+
+def render_three_row_tournament_dashboard(tournament, full_screen: bool = False):
+    """Three-row dashboard: 1) sport name, 2) overall points table, 3) per-group match results tables."""
+    apply_sport_background(tournament.sport_type.value, fullscreen=full_screen)
+    if full_screen:
+        apply_fullscreen_chrome()
+    # Row 1: sport name
+    st.markdown(f"<h1 style='text-align:center;color:var(--text-strong);background:transparent;margin:0.2rem 0 0.2rem;text-shadow:0 1px 0 rgba(255,255,255,0.6);'>{tournament.sport_type.value}</h1>", unsafe_allow_html=True)
+    # Compact sizing logic to ensure single-screen fit
+    num_teams = len(tournament.teams)
+    pad = 10 if num_teams <= 10 else (6 if num_teams <= 16 else (4 if num_teams <= 22 else 3))
+    fsize = 14 if num_teams <= 10 else (13 if num_teams <= 16 else (12 if num_teams <= 22 else 11))
+    st.markdown(
+        f"""
+        <style>
+        .pro-table tr td, .pro-table tr th {{ padding: {pad}px 8px; line-height: 1.1; font-size: {fsize}px; }}
+        .section-title {{ margin: 0.15rem 0; }}
+        .subsection-title {{ margin: 0.2rem 0; }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    # Row 2: points table (overall) - only team and points
+    st.markdown("<div class='section-title'>جدول النقاط</div>", unsafe_allow_html=True)
+    standings = _compute_overall_standings(tournament)
+    table = [
+        "<table class='pro-table'>",
+        "<thead><tr><th>الفريق</th><th>النقاط</th></tr></thead>",
+        "<tbody>"
+    ]
+    for row in standings:
+        table.append(f"<tr><td>{row['team_name']}</td><td>{row['points']}</td></tr>")
+    table.append("</tbody></table>")
+    st.markdown("\n".join(table), unsafe_allow_html=True)
+    # Row 3: results per group (single row of tables)
+    st.markdown("<div class='section-title'>نتائج المباريات حسب المجموعة</div>", unsafe_allow_html=True)
+    if tournament.groups:
+        cols = st.columns(max(1, min(4, len(tournament.groups))))
+        for i, (gid, group) in enumerate(tournament.groups.items()):
+            with cols[i % len(cols)]:
+                # Per-group container with sport-themed background tiles
+                scene_bg = _sport_scene_tile_data_uri(tournament.sport_type.value)
+                emoji_tile = _sport_tile_data_uri(get_sport_icon(tournament.sport_type.value))
+                st.markdown(f"<div class='subsection-title' style='margin-bottom:0.25rem;color:var(--text-strong);'>{group.name}</div>", unsafe_allow_html=True)
+                group_matches = [m for m in tournament.matches.values() if m.group_id == gid]
+                mtable = [
+                    "<table class='pro-table'>",
+                    "<thead><tr><th>الفريق</th><th>النتيجة</th><th>الفريق</th></tr></thead>",
+                    "<tbody>"
+                ]
+                for m in group_matches:
+                    t1 = tournament.teams.get(m.team1_id)
+                    t2 = tournament.teams.get(m.team2_id)
+                    n1 = t1.name if t1 else '—'
+                    n2 = t2.name if t2 else '—'
+                    score = f"{m.team1_score} - {m.team2_score}" if m.is_completed else "—"
+                    mtable.append(f"<tr><td>{n1}</td><td>{score}</td><td>{n2}</td></tr>")
+                mtable.append("</tbody></table>")
+                matches_html = "\n".join(mtable)
+                st.markdown(
+                    f"""
+                    <div style='padding:8px;border-radius:12px; background-image: {scene_bg}, {emoji_tile};
+                                background-repeat: repeat, repeat; background-size: 180px 180px, 90px 90px; background-color: rgba(255,255,255,0.92);
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.06);'>
+                        {matches_html}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+    else:
+        st.info("لا توجد مجموعات")
+
+def render_sidebar():
+    with st.sidebar:
+        st.markdown("""
+            <div style='text-align:center; margin-bottom: 1rem;'>
+                <div style='font-size:2rem;'>🏆</div>
+                <div style='font-weight:800;'>دوريات نادي الأمين</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        nav_label_to_page = {
+            "الرئيسية": "dashboard",
+            "أضف نتائج": "add_results",
+            "عرض نتائج": "view_results",
+            "أضف فرق": "add_teams",
+            "تعديل": "edit_mode",
+        }
+        current_page_label = next((k for k, v in nav_label_to_page.items() if v == st.session_state.page), "الرئيسية")
+        selected = st.radio(
+            "التنقل",
+            list(nav_label_to_page.keys()),
+            index=list(nav_label_to_page.keys()).index(current_page_label),
+        )
+        # Only update page if current page is one of the nav targets
+        if st.session_state.page in nav_label_to_page.values() and nav_label_to_page[selected] != st.session_state.page:
+            st.session_state.page = nav_label_to_page[selected]
+            st.rerun()
+
+        # Quick stats
+        tournaments = tm.get_all_tournaments()
+        if tournaments:
+            total_teams = sum(len(t.teams) for t in tournaments.values())
+            total_matches = sum(len(t.matches) + len(t.knockout_matches) for t in tournaments.values())
+            completed_matches = sum(
+                sum(1 for m in t.matches.values() if m.is_completed) +
+                sum(1 for m in t.knockout_matches.values() if m.is_completed)
+                for t in tournaments.values()
+            )
+            st.markdown("---")
+            st.caption("نظرة سريعة")
+            st.metric("عدد الدوريات", len(tournaments))
+            st.metric("إجمالي الفرق", total_teams)
+            st.metric("المباريات المكتملة", f"{completed_matches}/{total_matches}")
 
 def render_add_results_page():
     """Render add results page"""
@@ -36,10 +613,29 @@ def render_add_results_page():
     if not tournaments:
         st.warning("لا توجد دوريات متاحة. يجب إنشاء دوري وإضافة فرق أولاً.")
         return
-    
-    # Get all pending matches from all tournaments
+
+    # Minimal filters
+    filter_options = {"جميع الدوريات": None}
+    for t in tournaments.values():
+        filter_options[f"{get_sport_icon(t.sport_type.value)} {t.name}"] = t.id
+    # Determine default index based on preselection from dashboard
+    default_index = 0
+    pre_id = st.session_state.get("preselect_add_results_tournament")
+    if pre_id:
+        labels = list(filter_options.keys())
+        for idx, label in enumerate(labels):
+            if filter_options[label] == pre_id:
+                default_index = idx
+                break
+        del st.session_state["preselect_add_results_tournament"]
+    selected_filter_label = st.selectbox("الدوري", list(filter_options.keys()), index=default_index)
+    selected_filter_id = filter_options[selected_filter_label]
+
+    # Get all pending matches (optionally filtered)
     pending_matches = []
     for tournament_id, tournament in tournaments.items():
+        if selected_filter_id and tournament_id != selected_filter_id:
+            continue
         # Group stage matches
         for match_id, match in tournament.matches.items():
             if not match.is_completed:
@@ -65,9 +661,9 @@ def render_add_results_page():
         st.info("جميع المباريات مكتملة! لا توجد مباريات معلقة.")
         return
     
-    st.subheader("اختر المباراة لإدخال النتيجة")
-    
-    # Create match options for selectbox
+    st.subheader("اختر المباراة")
+
+    # Build options (no extra previews)
     match_options = {}
     for item in pending_matches:
         tournament = tournaments[item['tournament_id']]
@@ -76,11 +672,23 @@ def render_add_results_page():
         team1_name = team1.name if team1 else 'فريق غير معروف'
         team2_name = team2.name if team2 else 'فريق غير معروف'
         stage_name = "دور المجموعات" if item['stage'] == 'group' else get_round_name(item['match'].round_type)
-        
         match_label = f"{item['tournament_name']} - {stage_name}: {team1_name} ضد {team2_name}"
         match_options[match_label] = item
-    
-    selected_match_label = st.selectbox("المباراة", list(match_options.keys()))
+
+    labels = list(match_options.keys())
+    # Maintain a simple index for navigation
+    if 'addres_idx' not in st.session_state:
+        st.session_state.addres_idx = 0
+    # Reset index when tournament filter changes
+    if st.session_state.addres_idx >= len(labels):
+        st.session_state.addres_idx = 0
+    col_sel, col_next = st.columns([4,1])
+    with col_sel:
+        selected_match_label = st.selectbox("المباراة", labels, index=st.session_state.addres_idx)
+    with col_next:
+        if st.button("التالي", use_container_width=True):
+            st.session_state.addres_idx = (labels.index(selected_match_label) + 1) % len(labels)
+            st.rerun()
     
     if selected_match_label:
         selected_item = match_options[selected_match_label]
@@ -95,39 +703,66 @@ def render_add_results_page():
         st.markdown("---")
         st.subheader(f"نتيجة المباراة: {team1_name} ضد {team2_name}")
         
-        # Simple result selection (win/loss/draw)
+        # Minimal quick actions with optional custom input
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button(f"🏆 فوز {team1_name}", key="team1_win", width="stretch", type="primary"):
+            if st.button(f"🏆 فوز {team1_name}", key="team1_win", use_container_width=True, type="primary"):
                 # Team 1 wins: 1-0
                 if tm.update_match_result(selected_item['tournament_id'], match.id, 1, 0):
                     st.success(f"تم تسجيل فوز {team1_name}!")
+                    st.session_state.addres_idx = (labels.index(selected_match_label) + 1) % len(labels)
+                    st.session_state.page = "dashboard"
                     st.rerun()
                 else:
                     st.error("فشل في تحديث النتيجة")
         
         with col2:
-            if st.button("🤝 تعادل", key="draw", width="stretch", type="secondary"):
+            if st.button("🤝 تعادل", key="draw", use_container_width=True, type="secondary"):
                 # Draw: 0-0
                 if tm.update_match_result(selected_item['tournament_id'], match.id, 0, 0):
                     st.success("تم تسجيل التعادل!")
+                    st.session_state.addres_idx = (labels.index(selected_match_label) + 1) % len(labels)
+                    st.session_state.page = "dashboard"
                     st.rerun()
                 else:
                     st.error("فشل في تحديث النتيجة")
         
         with col3:
-            if st.button(f"🏆 فوز {team2_name}", key="team2_win", width="stretch", type="primary"):
+            if st.button(f"🏆 فوز {team2_name}", key="team2_win", use_container_width=True, type="primary"):
                 # Team 2 wins: 0-1
                 if tm.update_match_result(selected_item['tournament_id'], match.id, 0, 1):
                     st.success(f"تم تسجيل فوز {team2_name}!")
+                    st.session_state.addres_idx = (labels.index(selected_match_label) + 1) % len(labels)
+                    st.session_state.page = "dashboard"
                     st.rerun()
                 else:
                     st.error("فشل في تحديث النتيجة")
 
+        # Optional custom score (collapsed by default)
+        with st.expander("نتيجة مخصصة"):
+            sc1, sc2, sc3, sc4 = st.columns([2,1,1,2])
+            with sc1:
+                team1_score = st.number_input("نتيجة الفريق 1", min_value=0, step=1, key=f"cust_t1_{match.id}")
+            with sc2:
+                st.write("")
+                st.write("VS")
+            with sc3:
+                team2_score = st.number_input("نتيجة الفريق 2", min_value=0, step=1, key=f"cust_t2_{match.id}")
+            with sc4:
+                if st.button("تحديث النتيجة", type="primary", key=f"cust_update_{match.id}", use_container_width=True):
+                    if tm.update_match_result(selected_item['tournament_id'], match.id, int(team1_score), int(team2_score)):
+                        st.success("تم تحديث النتيجة!")
+                        st.session_state.addres_idx = (labels.index(selected_match_label) + 1) % len(labels)
+                        st.session_state.page = "dashboard"
+                        st.rerun()
+                    else:
+                        st.error("فشل في تحديث النتيجة")
+
 def render_view_results_page():
     """Render view results page"""
-    st.title("📺 عرض نتائج")
+    if not (st.session_state.viewing_mode == "automatic" and st.session_state.auto_mode_running):
+        st.title("📺 عرض نتائج")
     
     tournaments = tm.get_all_tournaments()
     
@@ -135,111 +770,272 @@ def render_view_results_page():
         st.info("لا توجد دوريات متاحة للعرض.")
         return
     
-    # Viewing mode selection
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        viewing_mode = st.radio(
-            "طريقة العرض",
-            ["manual", "automatic"],
-            format_func=lambda x: "يدوي" if x == "manual" else "تلقائي",
-            index=0 if st.session_state.viewing_mode == "manual" else 1
-        )
-        st.session_state.viewing_mode = viewing_mode
-    
-    with col2:
-        if viewing_mode == "automatic":
-            interval = st.slider(
-                "مدة العرض (ثواني)",
-                min_value=5,
-                max_value=60,
-                value=st.session_state.slideshow_interval,
-                step=5
+    # Handle query param actions for auto slideshow controls (exit/mode/interval)
+    try:
+        params = dict(st.query_params) if hasattr(st, "query_params") else st.experimental_get_query_params()
+    except Exception:
+        params = {}
+    def _clear_params():
+        try:
+            if hasattr(st, "query_params"):
+                st.query_params.clear()
+            else:
+                st.experimental_set_query_params()
+        except Exception:
+            pass
+    if params:
+        # Normalize single values
+        def _getv(k):
+            v = params.get(k)
+            return v[0] if isinstance(v, list) else v
+        exit_flag = _getv("exit")
+        mode_val = _getv("mode")
+        interval_val = _getv("interval")
+        if exit_flag:
+            st.session_state.auto_mode_running = False
+            st.session_state.viewing_mode = "manual"
+            _clear_params()
+            st.rerun()
+        if mode_val in ("manual", "automatic"):
+            st.session_state.viewing_mode = mode_val
+            if mode_val == "manual":
+                st.session_state.auto_mode_running = False
+            _clear_params()
+            st.rerun()
+        if interval_val:
+            try:
+                iv = int(interval_val)
+                iv = max(5, min(60, iv))
+                st.session_state.slideshow_interval = iv
+            except Exception:
+                pass
+            _clear_params()
+            st.rerun()
+
+    # Viewing mode selection (hidden during running automatic slideshow)
+    show_top_controls = not (st.session_state.viewing_mode == "automatic" and st.session_state.auto_mode_running)
+    viewing_mode = st.session_state.viewing_mode
+    if show_top_controls:
+        col1, col2 = st.columns(2)
+        with col1:
+            viewing_mode = st.radio(
+                "طريقة العرض",
+                ["manual", "automatic"],
+                format_func=lambda x: "يدوي" if x == "manual" else "تلقائي",
+                index=0 if st.session_state.viewing_mode == "manual" else 1
             )
-            st.session_state.slideshow_interval = interval
-    
-    st.markdown("---")
+            st.session_state.viewing_mode = viewing_mode
+        
+        with col2:
+            if viewing_mode == "automatic":
+                interval = st.slider(
+                    "مدة العرض (ثواني)",
+                    min_value=5,
+                    max_value=60,
+                    value=st.session_state.slideshow_interval,
+                    step=5
+                )
+                st.session_state.slideshow_interval = interval
+        
+        # No top separator while in view results page; keep top tight
     
     if viewing_mode == "manual":
         # Manual viewing mode
         st.subheader("اختر الدوري للعرض")
         
         tournament_options = {f"{get_sport_icon(t.sport_type.value)} {t.name}": t.id for t in tournaments.values()}
-        selected_tournament_label = st.selectbox("الدوري", list(tournament_options.keys()))
+        # Default selection from dashboard quick action
+        default_index = 0
+        pre_id = st.session_state.get("preselect_tournament")
+        if pre_id:
+            labels = list(tournament_options.keys())
+            for idx, label in enumerate(labels):
+                if tournament_options[label] == pre_id:
+                    default_index = idx
+                    break
+            del st.session_state["preselect_tournament"]
+        selected_tournament_label = st.selectbox("الدوري", list(tournament_options.keys()), index=default_index)
         
         if selected_tournament_label:
             selected_tournament_id = tournament_options[selected_tournament_label]
             selected_tournament = tournaments[selected_tournament_id]
-            
-            # Control buttons
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                if st.button("🖥️ عرض كامل", type="primary", key="full_screen_btn"):
-                    st.session_state.full_screen_mode = True
-                    st.session_state.full_screen_tournament = selected_tournament_id
-                    st.rerun()
-            
-            with col2:
-                if st.button("⚙️ تعديل هذا الدوري", type="secondary"):
-                    st.session_state.current_tournament = selected_tournament_id
-                    st.session_state.page = "team_management"
-                    st.rerun()
-            
-            with col3:
-                if 'full_screen_mode' in st.session_state and st.session_state.full_screen_mode:
-                    if st.button("🔙 عرض عادي", type="secondary", key="normal_screen_btn"):
-                        st.session_state.full_screen_mode = False
-                        if 'full_screen_tournament' in st.session_state:
-                            del st.session_state.full_screen_tournament
-                        st.rerun()
-            
-            st.markdown("---")
-            
-            # Display tournament in appropriate mode
-            if 'full_screen_mode' in st.session_state and st.session_state.full_screen_mode and st.session_state.get('full_screen_tournament') == selected_tournament_id:
-                render_tournament_display(selected_tournament, full_screen=True)
-            else:
-                render_tournament_display(selected_tournament, full_screen=False)
+            # Three-row tournament dashboard in embedded mode (keeps navigation/sidebar)
+            render_three_row_tournament_dashboard(selected_tournament, full_screen=False)
+            return
     
     else:
         # Automatic viewing mode
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("▶️ بدء العرض التلقائي", type="primary"):
-                st.session_state.auto_mode_running = True
-                st.rerun()
-        
-        with col2:
-            if st.button("⏹️ إيقاف العرض التلقائي", type="secondary"):
-                st.session_state.auto_mode_running = False
-                st.rerun()
+        if not st.session_state.auto_mode_running:
+            col1, col2, col3 = st.columns([1,1,1])
+            with col1:
+                if st.button("▶️ بدء العرض التلقائي", type="primary"):
+                    st.session_state.auto_mode_running = True
+                    st.rerun()
+            with col2:
+                if st.button("⏹️ إيقاف العرض التلقائي", type="secondary"):
+                    st.session_state.auto_mode_running = False
+                    st.rerun()
+            with col3:
+                randomize = st.checkbox("ترتيب عشوائي", value=st.session_state.get("randomize_slideshow", False))
+                st.session_state.randomize_slideshow = randomize
         
         if st.session_state.auto_mode_running:
             tournament_list = list(tournaments.values())
-            
             if tournament_list:
-                # Display current tournament
-                current_tournament = tournament_list[st.session_state.current_slide % len(tournament_list)]
-                
-                # Show progress
-                progress = (st.session_state.current_slide % len(tournament_list) + 1) / len(tournament_list)
-                st.progress(progress, text=f"الدوري {st.session_state.current_slide % len(tournament_list) + 1} من {len(tournament_list)}")
-                
-                render_tournament_display(current_tournament, full_screen=True)
-                
+                # Build slide sequence (groups + knockout per tournament)
+                slides = _build_auto_slides(tournament_list)
+                if not slides:
+                    st.info("لا توجد شرائح للعرض")
+                    return
+                # Determine current slide
+                if st.session_state.get("randomize_slideshow", False):
+                    tid, kind, payload = random.choice(slides)
+                    # keep current_slide moving for counter feel
+                    st.session_state.current_slide += 1
+                else:
+                    idx = st.session_state.current_slide % len(slides)
+                    tid, kind, payload = slides[idx]
+                current_tournament = tournaments.get(tid)
+                if not current_tournament:
+                    # Skip invalid and advance
+                    st.session_state.current_slide += 1
+                    st.rerun()
+                # Apply fullscreen chrome and sport background for slide feel
+                apply_sport_background(current_tournament.sport_type.value, fullscreen=True)
+                apply_fullscreen_chrome()
+                # Determine scale to fit into one viewport without scrolling
+                s_count = 0
+                m_count = 0
+                if kind == 'group' and payload in current_tournament.groups:
+                    try:
+                        s_count = len(current_tournament.get_group_standings(payload))
+                        m_count = sum(1 for m in current_tournament.matches.values() if m.group_id == payload)
+                    except Exception:
+                        s_count = 0
+                        m_count = 0
+                elif kind == 'knockout':
+                    try:
+                        m_count = len(current_tournament.knockout_matches)
+                    except Exception:
+                        m_count = 0
+                elif kind == 'groups_chunk':
+                    try:
+                        s_count = sum(len(current_tournament.get_group_standings(gid)) for gid in payload)
+                        m_count = sum(1 for m in current_tournament.matches.values())
+                    except Exception:
+                        s_count = 0
+                        m_count = 0
+                total_rows = s_count + m_count
+                scale_val = 1.0
+                if total_rows > 18:
+                    scale_val = 0.95
+                if total_rows > 26:
+                    scale_val = 0.9
+                if total_rows > 34:
+                    scale_val = 0.85
+                if total_rows > 42:
+                    scale_val = 0.8
+                if total_rows > 50:
+                    scale_val = 0.75
+                if total_rows > 60:
+                    scale_val = 0.7
+                if total_rows > 75:
+                    scale_val = 0.65
+                if total_rows > 90:
+                    scale_val = 0.6
+                if total_rows > 110:
+                    scale_val = 0.55
+                if total_rows > 140:
+                    scale_val = 0.5
+                # Dynamic compact table/card styles based on density
+                comp_pad = 6
+                comp_font = 12
+                card_pad = 10
+                if total_rows > 60:
+                    comp_pad = 5
+                    comp_font = 11
+                    card_pad = 8
+                if total_rows > 90:
+                    comp_pad = 4
+                    comp_font = 10
+                    card_pad = 6
+                # Slide styling: fade-in and animated progress bar matching interval
+                interval = max(1, int(st.session_state.slideshow_interval))
+                total_slides = len(slides)
+                current_number = (st.session_state.current_slide % total_slides) + 1 if total_slides else 1
+                st.markdown(
+                    f"""
+                    <style>
+                    @keyframes slideFadeIn {{
+                        from {{ opacity: 0; transform: translateY(6px); }}
+                        to {{ opacity: 1; transform: translateY(0); }}
+                    }}
+                    @keyframes slideProgress {{
+                        from {{ width: 0%; }}
+                        to {{ width: 100%; }}
+                    }}
+                    .autoslide-overlay {{
+                        position: fixed; inset: 0; z-index: 9999;
+                        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+                        overflow: hidden; padding: 0 8px 0 8px;
+                    }}
+                    .autoslide-canvas {{
+                        width: 100%; max-width: 1200px;
+                        transform: scale({scale_val}); transform-origin: top center;
+                        animation: slideFadeIn 300ms ease both;
+                    }}
+                    .autoslide-controls {{
+                        width: 100%; max-width: 1200px;
+                        display: flex; align-items: center; justify-content: center;
+                        margin-top: 8px;
+                    }}
+                    /* Compact overrides for group cards/tables to reduce height */
+                    .group-card {{ padding: {card_pad}px; }}
+                    .group-card .pro-table.compact th, .group-card .pro-table.compact td {{ padding: {comp_pad}px 6px; font-size: {comp_font}px; }}
+                    .section-title {{ margin: 0.2rem 0; }}
+                    .subsection-title {{ margin: 0.2rem 0; }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                # Render the slide content within a wrapper that we can scale and center
+                st.markdown("<div class='autoslide-overlay'><div class='autoslide-canvas' style='margin-top:0'>", unsafe_allow_html=True)
+                _render_auto_slide(current_tournament, kind, payload)
+                # Controls under the slide: Exit, Mode, Interval
+                mode_now = st.session_state.viewing_mode
+                other_mode = 'manual' if mode_now == 'automatic' else 'automatic'
+                other_mode_label = 'يدوي' if other_mode == 'manual' else 'تلقائي'
+                cur_int = int(st.session_state.slideshow_interval)
+                minus_int = max(5, cur_int - 5)
+                plus_int = min(60, cur_int + 5)
+                st.markdown(
+                    f"""
+                    </div>
+                    <div class='autoslide-controls'>
+                      <a class='exit-btn' href='?exit=1'>⤴️ خروج</a>
+                      <span style='width:12px;display:inline-block'></span>
+                      <span style='width:6px;display:inline-block'></span>
+                    </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 # Auto-advance
-                time.sleep(st.session_state.slideshow_interval)
+                time.sleep(interval)
                 st.session_state.current_slide += 1
                 st.rerun()
         else:
             st.info("اضغط على 'بدء العرض التلقائي' لبدء العرض التلقائي للدوريات")
-            
-            # Show preview of tournaments
             st.subheader("الدوريات المتاحة")
+            # Compact list view with chips
             for tournament in tournaments.values():
-                st.write(f"{get_sport_icon(tournament.sport_type.value)} {tournament.name} - {len(tournament.teams)} فريق")
+                st.markdown(
+                    f"<div class='ux-card' style='margin-bottom:0.5rem; display:flex;justify-content:space-between;align-items:center;'>"
+                    f"<div>{get_sport_icon(tournament.sport_type.value)} {tournament.name}</div>"
+                    f"<span class='chip chip-accent'>{tournament.sport_type.value}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
 
 def render_add_teams_page():
     """Render add teams page"""
@@ -249,44 +1045,75 @@ def render_add_teams_page():
     
     with tab1:
         st.subheader("إضافة فريق/لاعب جديد")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            tournament_name = st.text_input("اسم الدوري")
-            sport_options = [sport.value for sport in SportType]
-            selected_sport = st.selectbox("نوع الرياضة", sport_options)
-        
-        with col2:
-            team_name_label = get_team_name_label(selected_sport)
-            team_name = st.text_input(team_name_label)
-            notes = st.text_area("ملاحظات (اختياري)")
-        
-        if st.button("إنشاء الدوري وإضافة الفريق", type="primary"):
-            if tournament_name.strip() and team_name.strip():
-                sport_type = SportType(selected_sport)
-                
-                # Create tournament if it doesn't exist
-                tournament_created = tm.create_tournament(tournament_name.strip(), sport_type)
-                
-                if tournament_created:
-                    # Find the created tournament
-                    tournaments = tm.get_all_tournaments()
-                    created_tournament = None
-                    for t in tournaments.values():
-                        if t.name == tournament_name.strip() and t.sport_type == sport_type:
-                            created_tournament = t
-                            break
-                    
-                    if created_tournament and tm.add_team_to_tournament(created_tournament.id, team_name.strip()):
-                        st.success(f"تم إنشاء الدوري '{tournament_name}' وإضافة '{team_name}' بنجاح!")
-                        st.rerun()
-                    else:
-                        st.error("فشل في إضافة الفريق")
+
+        with st.form(key="create_tournament_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                tournament_name = st.text_input("اسم الدوري", key="tournament_name_create")
+                sport_options = [sport.value for sport in SportType]
+                selected_sport = st.selectbox("نوع الرياضة", sport_options, key="selected_sport_create")
+            with col2:
+                add_mode = st.radio("طريقة الإضافة", ["فريق واحد", "عدة فرق"], horizontal=True, key="add_mode_create")
+                if add_mode == "فريق واحد":
+                    team_name_label = get_team_name_label(selected_sport)
+                    team_name = st.text_input(team_name_label, key="team_name_create")
                 else:
-                    st.error("فشل في إنشاء الدوري")
-            else:
-                st.error("يرجى إدخال اسم الدوري واسم الفريق")
+                    st.caption("أدخل كل اسم في سطر منفصل")
+                    bulk_names = st.text_area("الأسماء", height=150, key="bulk_names_create")
+            
+            # Live preview card
+            preview_cols = st.columns([2, 1])
+            with preview_cols[0]:
+                team_preview = team_name.strip() if ("team_name" in locals() and team_name) else "—"
+                bulk_count = len([n for n in (bulk_names.splitlines() if "bulk_names" in locals() and bulk_names else []) if n.strip()])
+                st.markdown(f"""
+                    <div class='ux-card ux-card-accent'>
+                        <div style='font-weight:800;'>{tournament_name if tournament_name else "اسم الدوري"}</div>
+                        <div class='ux-muted' style='margin:0.25rem 0;'>الرياضة: {selected_sport}</div>
+                        <div>{'👥 فريق واحد: ' + team_preview if add_mode == 'فريق واحد' else '👥 عدد الفرق: ' + str(bulk_count)}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with preview_cols[1]:
+                notes = st.text_area("ملاحظات (اختياري)", key="notes_create")
+
+            submitted = st.form_submit_button("إنشاء الدوري وإضافة الفرق", type="primary", use_container_width=True)
+            if submitted:
+                if not tournament_name.strip():
+                    st.error("يرجى إدخال اسم الدوري")
+                elif add_mode == "فريق واحد" and not team_name.strip():
+                    st.error("يرجى إدخال اسم الفريق/اللاعب")
+                elif add_mode == "عدة فرق" and not bulk_names.strip():
+                    st.error("يرجى إدخال الأسماء")
+                else:
+                    sport_type = SportType(selected_sport)
+                    tournament_created = tm.create_tournament(tournament_name.strip(), sport_type)
+                    if tournament_created:
+                        tournaments_all = tm.get_all_tournaments()
+                        created_tournament = None
+                        for t in tournaments_all.values():
+                            if t.name == tournament_name.strip() and t.sport_type == sport_type:
+                                created_tournament = t
+                                break
+                        success_count = 0
+                        total = 0
+                        if created_tournament:
+                            if add_mode == "فريق واحد":
+                                total = 1
+                                if tm.add_team_to_tournament(created_tournament.id, team_name.strip()):
+                                    success_count = 1
+                            else:
+                                names = [n.strip() for n in bulk_names.splitlines() if n.strip()]
+                                total = len(names)
+                                for name in names:
+                                    if tm.add_team_to_tournament(created_tournament.id, name):
+                                        success_count += 1
+                        if success_count > 0:
+                            st.success(f"تم إنشاء الدوري '{tournament_name}' وإضافة {success_count} من {total} بنجاح!")
+                            st.rerun()
+                        else:
+                            st.error("فشل في إضافة أي فريق")
+                    else:
+                        st.error("فشل في إنشاء الدوري")
     
     with tab2:
         st.subheader("إدارة الفرق الموجودة")
@@ -309,7 +1136,7 @@ def render_add_teams_page():
                     team_name_label = get_team_name_label(tournament.sport_type.value)
                     new_team_name = st.text_input(team_name_label, key="new_team_existing")
                     
-                    if st.button("إضافة الفريق", type="primary", key="add_to_existing"):
+                    if st.button("إضافة الفريق", type="primary", key="add_to_existing", use_container_width=True):
                         if new_team_name.strip():
                             if tm.add_team_to_tournament(selected_tournament_id, new_team_name.strip()):
                                 st.success("تم إضافة الفريق بنجاح!")
@@ -318,19 +1145,40 @@ def render_add_teams_page():
                                 st.error("فشل في إضافة الفريق")
                         else:
                             st.error("يرجى إدخال اسم الفريق")
+
+                # Bulk add teams
+                with st.expander("إضافة عدة فرق دفعة واحدة"):
+                    st.caption("أدخل كل اسم في سطر منفصل")
+                    bulk_text = st.text_area("الأسماء", height=150, key="bulk_team_text")
+                    if st.button("إضافة الكل", type="primary", key="bulk_add_btn", use_container_width=True):
+                        names = [n.strip() for n in bulk_text.splitlines() if n.strip()]
+                        if not names:
+                            st.warning("لم يتم العثور على أسماء.")
+                        else:
+                            success_count = 0
+                            for name in names:
+                                if tm.add_team_to_tournament(selected_tournament_id, name):
+                                    success_count += 1
+                            st.success(f"تمت إضافة {success_count} من {len(names)}.")
+                            st.rerun()
                 
                 # Display and manage existing teams
                 if tournament.teams:
                     st.subheader("الفرق المسجلة")
+                    search_query = st.text_input("ابحث عن فريق", key="team_search")
                     
-                    for team_id, team in tournament.teams.items():
+                    # Sort and filter
+                    teams_sorted = sorted(tournament.teams.items(), key=lambda kv: kv[1].name)
+                    for team_id, team in teams_sorted:
+                        if search_query and search_query.strip() not in team.name:
+                            continue
                         col1, col2 = st.columns([3, 1])
                         
                         with col1:
                             st.write(f"**{team.name}**")
                         
                         with col2:
-                            if st.button("حذف", key=f"delete_team_{team_id}", type="secondary"):
+                            if st.button("حذف", key=f"delete_team_{team_id}", type="secondary", use_container_width=True):
                                 if tm.remove_team_from_tournament(selected_tournament_id, team_id):
                                     st.success("تم حذف الفريق بنجاح!")
                                     st.rerun()
@@ -447,14 +1295,14 @@ def render_edit_mode_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("🏆 إدارة الدوريات", width="stretch", type="primary"):
+        if st.button("🏆 إدارة الدوريات", use_container_width=True, type="primary"):
             st.session_state.page = "tournament_management"
             st.rerun()
         
         st.markdown("إدارة الدوريات، إنشاء دوريات جديدة، حذف الدوريات الموجودة")
     
     with col2:
-        if st.button("⚙️ الإعدادات المتقدمة", width="stretch", type="secondary"):
+        if st.button("⚙️ الإعدادات المتقدمة", use_container_width=True, type="secondary"):
             st.info("قريباً - إعدادات متقدمة للنظام")
     
     st.markdown("---")
@@ -492,241 +1340,153 @@ def render_edit_mode_page():
         st.info("لا توجد دوريات للتعديل")
 
 def render_tournament_display(tournament, full_screen=False):
-    """Render complete tournament display with tree-like bracket view"""
-    # Header with full screen option
-    if not full_screen:
-        st.header(f"{get_sport_icon(tournament.sport_type.value)} {tournament.name}")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.metric("عدد الفرق", len(tournament.teams))
-            st.metric("عدد المجموعات", len(tournament.groups))
-        
-        with col2:
-            completed_matches = sum(1 for m in tournament.matches.values() if m.is_completed)
-            st.metric("المباريات المكتملة", f"{completed_matches}/{len(tournament.matches)}")
-            knockout_completed = sum(1 for m in tournament.knockout_matches.values() if m.is_completed)
-            st.metric("مباريات الإقصاء المكتملة", f"{knockout_completed}/{len(tournament.knockout_matches)}")
-    else:
-        # Full screen mode - larger header
-        st.markdown(f"<h1 style='text-align: center; font-size: 3rem; margin-bottom: 2rem;'>{get_sport_icon(tournament.sport_type.value)} {tournament.name}</h1>", unsafe_allow_html=True)
-    
-    # Tournament bracket tree display
-    st.markdown("---")
-    
-    # Group stage section
+    """Render a clean, professional tournament results view (type, standings, all matches)."""
+    # Header
+    header_tag = "h1" if full_screen else "h2"
+    st.markdown(
+        f"<{header_tag} style='text-align:center;margin-bottom:0.5rem;'>{get_sport_icon(tournament.sport_type.value)} {tournament.name}</{header_tag}>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(f"<div style='text-align:center;margin-bottom:1rem;'><span class='chip chip-accent'>{tournament.sport_type.value}</span></div>", unsafe_allow_html=True)
+
+    # Groups: standings + all matches
     if tournament.groups:
-        st.markdown(f"<h2 style='text-align: center; color: #1f4e79; margin-bottom: 1.5rem;'>🏁 دور المجموعات</h2>", unsafe_allow_html=True)
-        
-        # Display groups in columns
-        group_cols = st.columns(len(tournament.groups))
-        group_winners = []
-        
-        for i, (group_id, group) in enumerate(tournament.groups.items()):
-            with group_cols[i]:
-                st.markdown(f"<h4 style='text-align: center; background: linear-gradient(90deg, #1f4e79, #4a90e2); color: white; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem;'>{group.name}</h4>", unsafe_allow_html=True)
-                
-                # Group standings
-                standings = tournament.get_group_standings(group_id)
-                
-                if standings:
-                    # Display top teams prominently
-                    for j, team_data in enumerate(standings[:4]):  # Show top 4
-                        position_emoji = ["🥇", "🥈", "🥉", "4️⃣"][j] if j < 4 else f"{j+1}️⃣"
-                        
-                        if j == 0:  # Winner
-                            st.markdown(f"<div style='background: gold; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center; font-weight: bold;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
-                            group_winners.append(team_data['team_id'])
-                        elif j == 1:  # Runner-up
-                            st.markdown(f"<div style='background: silver; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
-                        elif j == 2:  # Third place
-                            st.markdown(f"<div style='background: #cd7f32; color: white; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"<div style='background: #f0f0f0; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-bottom: 0.3rem; text-align: center;'>{position_emoji} {team_data['team_name']}<br>النقاط: {team_data['points']}</div>", unsafe_allow_html=True)
-                
-                # Group matches summary
-                group_matches = [m for m in tournament.matches.values() if m.group_id == group_id]
-                if group_matches:
-                    completed_count = sum(1 for m in group_matches if m.is_completed)
-                    st.markdown(f"<p style='text-align: center; font-size: 0.9rem; color: #666;'>المباريات: {completed_count}/{len(group_matches)}</p>", unsafe_allow_html=True)
-    
-    # Knockout stage tree display
+        st.markdown("<div class='section-title'>🏁 دور المجموعات</div>", unsafe_allow_html=True)
+        for group_id, group in tournament.groups.items():
+            st.markdown(f"<div class='subsection-title'>{group.name}</div>", unsafe_allow_html=True)
+            standings = tournament.get_group_standings(group_id)
+            # Standings table (Team, Points)
+            table = [
+                "<table class='pro-table'>",
+                "<thead><tr><th>الفريق</th><th>النقاط</th></tr></thead>",
+                "<tbody>"
+            ]
+            for row in standings:
+                table.append(f"<tr><td>{row['team_name']}</td><td>{row['points']}</td></tr>")
+            table.append("</tbody></table>")
+            st.markdown("\n".join(table), unsafe_allow_html=True)
+
+            # Group matches table
+            group_matches = [m for m in tournament.matches.values() if m.group_id == group_id]
+            st.markdown(f"<div class='subsection-title'>نتائج المباريات</div>", unsafe_allow_html=True)
+            if group_matches:
+                mtable = [
+                    "<table class='pro-table'>",
+                    "<thead><tr><th>الفريق 1</th><th>النتيجة</th><th>الفريق 2</th></tr></thead>",
+                    "<tbody>"
+                ]
+                for m in group_matches:
+                    t1 = tournament.teams.get(m.team1_id)
+                    t2 = tournament.teams.get(m.team2_id)
+                    n1 = t1.name if t1 else '—'
+                    n2 = t2.name if t2 else '—'
+                    score = f"{m.team1_score} - {m.team2_score}" if m.is_completed else "—"
+                    mtable.append(f"<tr><td>{n1}</td><td>{score}</td><td>{n2}</td></tr>")
+                mtable.append("</tbody></table>")
+                st.markdown("\n".join(mtable), unsafe_allow_html=True)
+            else:
+                st.info("لا توجد مباريات في هذه المجموعة")
+
+    # Knockout matches
     if tournament.knockout_matches:
-        st.markdown("---")
-        st.markdown(f"<h2 style='text-align: center; color: #dc3545; margin: 2rem 0;'>🏆 دور الإقصاء</h2>", unsafe_allow_html=True)
-        
-        # Group knockout matches by round
+        st.markdown("<div class='section-title'>🏆 دور الإقصاء</div>", unsafe_allow_html=True)
         rounds = {}
         for match in tournament.knockout_matches.values():
-            if match.round_type not in rounds:
-                rounds[match.round_type] = []
-            rounds[match.round_type].append(match)
-        
-        # Display knockout tree
-        if "semi" in rounds and "final" in rounds:
-            # Full knockout tree (Semi + Final)
-            col1, col2, col3 = st.columns([2, 1, 2])
-            
-            # Semi-finals
-            with col1:
-                st.markdown(f"<h4 style='text-align: center; color: #dc3545;'>نصف النهائي</h4>", unsafe_allow_html=True)
-                semi_winners = []
-                
-                for match in rounds["semi"]:
-                    team1 = tournament.teams.get(match.team1_id)
-                    team2 = tournament.teams.get(match.team2_id)
-                    team1_name = team1.name if team1 else 'فريق غير معروف'
-                    team2_name = team2.name if team2 else 'فريق غير معروف'
-                    
-                    if match.is_completed:
-                        winner = match.get_winner()
-                        if winner:
-                            winner_team = tournament.teams.get(winner)
-                            winner_name = winner_team.name if winner_team else 'فريق غير معروف'
-                            semi_winners.append(winner)
-                            
-                            st.markdown(f"""
-                            <div style='border: 2px solid #dc3545; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: #fff5f5;'>
-                                <div style='text-align: center; font-weight: bold; color: #dc3545; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
-                                <div style='text-align: center; font-size: 1.2rem;'>{match.team1_score} - {match.team2_score}</div>
-                                <div style='text-align: center; background: #dc3545; color: white; padding: 0.3rem; border-radius: 0.3rem; margin-top: 0.5rem;'>🏆 الفائز: {winner_name}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"""
-                            <div style='border: 2px solid #ffc107; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: #fffbf0;'>
-                                <div style='text-align: center; font-weight: bold; color: #ffc107; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
-                                <div style='text-align: center; font-size: 1.2rem;'>{match.team1_score} - {match.team2_score}</div>
-                                <div style='text-align: center; background: #ffc107; color: black; padding: 0.3rem; border-radius: 0.3rem; margin-top: 0.5rem;'>🤝 تعادل</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div style='border: 2px dashed #6c757d; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: #f8f9fa;'>
-                            <div style='text-align: center; color: #6c757d;'>{team1_name} ضد {team2_name}</div>
-                            <div style='text-align: center; color: #6c757d; margin-top: 0.5rem;'>⏳ لم تلعب بعد</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-            
-            # Arrow or connector
-            with col2:
-                st.markdown("<div style='text-align: center; font-size: 3rem; margin-top: 3rem;'>➡️</div>", unsafe_allow_html=True)
-            
-            # Final
-            with col3:
-                st.markdown(f"<h4 style='text-align: center; color: #dc3545;'>النهائي</h4>", unsafe_allow_html=True)
-                
-                for match in rounds["final"]:
-                    team1 = tournament.teams.get(match.team1_id)
-                    team2 = tournament.teams.get(match.team2_id)
-                    team1_name = team1.name if team1 else 'فريق غير معروف'
-                    team2_name = team2.name if team2 else 'فريق غير معروف'
-                    
-                    if match.is_completed:
-                        winner = match.get_winner()
-                        if winner:
-                            winner_team = tournament.teams.get(winner)
-                            winner_name = winner_team.name if winner_team else 'فريق غير معروف'
-                            
-                            st.markdown(f"""
-                            <div style='border: 3px solid #ffd700; border-radius: 0.5rem; padding: 1.5rem; background: linear-gradient(45deg, #ffd700, #ffed4e);'>
-                                <div style='text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
-                                <div style='text-align: center; font-size: 1.5rem; font-weight: bold;'>{match.team1_score} - {match.team2_score}</div>
-                                <div style='text-align: center; background: #dc3545; color: white; padding: 0.5rem; border-radius: 0.3rem; margin-top: 0.5rem; font-size: 1.1rem;'>👑 البطل: {winner_name}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"""
-                            <div style='border: 3px solid #ffc107; border-radius: 0.5rem; padding: 1.5rem; background: linear-gradient(45deg, #ffc107, #ffed4e);'>
-                                <div style='text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 0.5rem;'>{team1_name} ضد {team2_name}</div>
-                                <div style='text-align: center; font-size: 1.5rem; font-weight: bold;'>{match.team1_score} - {match.team2_score}</div>
-                                <div style='text-align: center; background: #ffc107; color: black; padding: 0.5rem; border-radius: 0.3rem; margin-top: 0.5rem; font-size: 1.1rem;'>🤝 تعادل في النهائي</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div style='border: 3px dashed #6c757d; border-radius: 0.5rem; padding: 1.5rem; background: #f8f9fa;'>
-                            <div style='text-align: center; color: #6c757d; font-size: 1.2rem;'>{team1_name} ضد {team2_name}</div>
-                            <div style='text-align: center; color: #6c757d; margin-top: 0.5rem; font-size: 1.1rem;'>⏳ النهائي لم يلعب بعد</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-        
-        elif "final" in rounds:
-            # Direct final
-            st.markdown(f"<h4 style='text-align: center; color: #dc3545;'>النهائي</h4>", unsafe_allow_html=True)
-            
-            for match in rounds["final"]:
-                team1 = tournament.teams.get(match.team1_id)
-                team2 = tournament.teams.get(match.team2_id)
-                team1_name = team1.name if team1 else 'فريق غير معروف'
-                team2_name = team2.name if team2 else 'فريق غير معروف'
-                
-                if match.is_completed:
-                    winner = match.get_winner()
-                    if winner:
-                        winner_team = tournament.teams.get(winner)
-                        winner_name = winner_team.name if winner_team else 'فريق غير معروف'
-                        
-                        st.markdown(f"""
-                        <div style='border: 3px solid #ffd700; border-radius: 0.5rem; padding: 2rem; background: linear-gradient(45deg, #ffd700, #ffed4e); text-align: center;'>
-                            <div style='font-weight: bold; font-size: 1.5rem; margin-bottom: 1rem;'>{team1_name} ضد {team2_name}</div>
-                            <div style='font-size: 2rem; font-weight: bold; margin-bottom: 1rem;'>{match.team1_score} - {match.team2_score}</div>
-                            <div style='background: #dc3545; color: white; padding: 1rem; border-radius: 0.5rem; font-size: 1.3rem;'>👑 البطل: {winner_name}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.markdown(f"""
-                    <div style='border: 3px dashed #6c757d; border-radius: 0.5rem; padding: 2rem; background: #f8f9fa; text-align: center;'>
-                        <div style='color: #6c757d; font-size: 1.5rem;'>{team1_name} ضد {team2_name}</div>
-                        <div style='color: #6c757d; margin-top: 1rem; font-size: 1.2rem;'>⏳ النهائي لم يلعب بعد</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+            rounds.setdefault(match.round_type, []).append(match)
+        for round_type in ["semi", "final"]:
+            if round_type in rounds:
+                st.markdown(f"<div class='subsection-title'>{get_round_name(round_type)}</div>", unsafe_allow_html=True)
+                ktable = [
+                    "<table class='pro-table'>",
+                    "<thead><tr><th>الفريق 1</th><th>النتيجة</th><th>الفريق 2</th></tr></thead>",
+                    "<tbody>"
+                ]
+                for m in rounds[round_type]:
+                    t1 = tournament.teams.get(m.team1_id)
+                    t2 = tournament.teams.get(m.team2_id)
+                    n1 = t1.name if t1 else '—'
+                    n2 = t2.name if t2 else '—'
+                    score = f"{m.team1_score} - {m.team2_score}" if m.is_completed else "—"
+                    ktable.append(f"<tr><td>{n1}</td><td>{score}</td><td>{n2}</td></tr>")
+                ktable.append("</tbody></table>")
+                st.markdown("\n".join(ktable), unsafe_allow_html=True)
 
 def render_dashboard():
     """Render main dashboard"""
+    # Always render dashboard in a single view with auto-compact scaling
+    tournaments = tm.get_all_tournaments()
+    num_tournaments = len(tournaments)
+    num_groups = sum(len(t.groups) for t in tournaments.values())
+    # Heuristic scale to fit content in one view
+    scale = 90
+    if num_tournaments > 3 or num_groups > 6:
+        scale = 85
+    if num_tournaments > 5 or num_groups > 10:
+        scale = 80
+    if num_tournaments > 8 or num_groups > 14:
+        scale = 75
+    if num_tournaments > 10 or num_groups > 18:
+        scale = 70
+    if num_tournaments > 12 or num_groups > 22:
+        scale = 65
+    if num_tournaments > 15 or num_groups > 26:
+        scale = 60
+    apply_compact_no_scroll(scale)
+    # Zero top spacing for a flush top and tighten heading spacing
+    st.markdown(
+        """
+        <style>
+        .block-container { padding-top: 0 !important; margin-top: 0 !important; }
+        h1, h2, h3 { margin-top: 0 !important; margin-bottom: 0.25rem !important; }
+        .stMetric { padding: 0 !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     # Header section
-    st.markdown("<h1 style='text-align: center; color: #1f4e79;'>🏆 نادي الأمين</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; margin-bottom: 2rem;'>أهلاً بكم</h3>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: var(--brand-primary); margin:0;'>🏆 نادي الأمين</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin: 0 0 0.5rem 0;'>أهلاً بكم</h3>", unsafe_allow_html=True)
     
     # Main buttons section
-    col1, col2, col3 = st.columns(3)
-    
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        if st.button("📝 أضف نتائج", key="add_results", width="stretch", type="primary"):
+        if st.button("📝 أضف نتائج", key="add_results", use_container_width=True, type="primary"):
             st.session_state.page = "add_results"
             st.rerun()
-    
     with col2:
-        if st.button("📺 عرض نتائج", key="view_results", width="stretch", type="primary"):
+        if st.button("📺 عرض نتائج", key="view_results", use_container_width=True, type="primary"):
             st.session_state.page = "view_results"
             st.rerun()
-    
     with col3:
-        if st.button("👥 أضف فرق", key="add_teams", width="stretch", type="primary"):
+        if st.button("👥 أضف فرق", key="add_teams", use_container_width=True, type="primary"):
             st.session_state.page = "add_teams"
             st.rerun()
+    with col4:
+        if st.button("🤝 إدارة المباريات", key="manage_matches_hub", use_container_width=True, type="secondary"):
+            st.session_state.page = "match_hub"
+            st.rerun()
     
-    # Edit button
+    # Edit button (no top separator)
     st.markdown("---")
     col_edit = st.columns([1, 2, 1])
     with col_edit[1]:
-        if st.button("⚙️ تعديل", key="edit_main", width="stretch", type="secondary"):
+        if st.button("⚙️ تعديل", key="edit_main", use_container_width=True, type="secondary"):
             st.session_state.page = "edit_mode"
             st.rerun()
     
     # Show quick stats if tournaments exist
-    tournaments = tm.get_all_tournaments()
     if tournaments:
-        st.markdown("---")
+        # No top separator; go straight to content
         st.subheader("نظرة سريعة")
         
         # Quick statistics
         total_teams = sum(len(t.teams) for t in tournaments.values())
         total_matches = sum(len(t.matches) + len(t.knockout_matches) for t in tournaments.values())
-        completed_matches = sum(sum(1 for m in t.matches.values() if m.is_completed) + 
-                              sum(1 for m in t.knockout_matches.values() if m.is_completed) 
-                              for t in tournaments.values())
+        completed_matches = sum(
+            sum(1 for m in t.matches.values() if m.is_completed) +
+            sum(1 for m in t.knockout_matches.values() if m.is_completed)
+            for t in tournaments.values()
+        )
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -735,35 +1495,168 @@ def render_dashboard():
             st.metric("إجمالي الفرق", total_teams)
         with col3:
             st.metric("المباريات المكتملة", f"{completed_matches}/{total_matches}")
-        
-        # Tournament previews
+
+        # Tournament cards grid with search/sort/filters/view toggle
         st.subheader("الدوريات النشطة")
-        for tournament in tournaments.values():
-            with st.expander(f"{get_sport_icon(tournament.sport_type.value)} {tournament.name}"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"**النوع:** {tournament.sport_type.value}")
-                    st.write(f"**عدد الفرق:** {len(tournament.teams)}")
-                with col2:
-                    group_matches_completed = sum(1 for m in tournament.matches.values() if m.is_completed)
-                    knockout_matches_completed = sum(1 for m in tournament.knockout_matches.values() if m.is_completed)
-                    st.write(f"**مباريات المجموعات:** {group_matches_completed}/{len(tournament.matches)}")
-                    st.write(f"**مباريات الإقصاء:** {knockout_matches_completed}/{len(tournament.knockout_matches)}")
+        control_cols = st.columns([2,2,2,2,2])
+        with control_cols[0]:
+            search_query = st.text_input("ابحث عن دوري", key="dash_search")
+        with control_cols[1]:
+            sort_by = st.selectbox("ترتيب حسب", ["الاسم", "عدد الفرق", "نسبة الإنجاز"], key="dash_sort_by")
+        with control_cols[2]:
+            sort_dir_desc = st.checkbox("تنازلي", value=False, key="dash_sort_desc")
+        with control_cols[3]:
+            sport_filter = st.selectbox("الرياضة", ["الكل"] + [s.value for s in SportType], key="dash_sport")
+        with control_cols[4]:
+            only_pending = st.checkbox("مباريات معلّقة فقط", value=False, key="dash_only_pending")
+
+        tournaments_list = list(tournaments.values())
+        if search_query:
+            q = search_query.strip()
+            tournaments_list = [t for t in tournaments_list if q in t.name]
+        if sport_filter != "الكل":
+            tournaments_list = [t for t in tournaments_list if t.sport_type.value == sport_filter]
+        def completion_ratio(t):
+            total = len(t.matches) + len(t.knockout_matches)
+            if total == 0:
+                return 0
+            done = sum(1 for m in t.matches.values() if m.is_completed) + sum(1 for m in t.knockout_matches.values() if m.is_completed)
+            return done/total
+        if only_pending:
+            tournaments_list = [t for t in tournaments_list if completion_ratio(t) < 1]
+        if sort_by == "الاسم":
+            tournaments_list.sort(key=lambda t: t.name, reverse=sort_dir_desc)
+        elif sort_by == "عدد الفرق":
+            tournaments_list.sort(key=lambda t: len(t.teams), reverse=sort_dir_desc)
+        else:
+            tournaments_list.sort(key=completion_ratio, reverse=sort_dir_desc)
+        view_mode = st.radio("العرض", ["شبكة", "قائمة"], index=0, key="dash_view_mode")
+        num_cols = 3 if view_mode == "شبكة" else 1
+        rows = (len(tournaments_list) + num_cols - 1) // num_cols
+        idx = 0
+        for _ in range(rows):
+            cols = st.columns(num_cols)
+            for c in range(num_cols):
+                if idx >= len(tournaments_list):
+                    break
+                t = tournaments_list[idx]
+                with cols[c]:
+                    group_matches_completed = sum(1 for m in t.matches.values() if match_completed(m))
+                    knockout_matches_completed = sum(1 for m in t.knockout_matches.values() if match_completed(m))
+                    total_matches = len(t.matches) + len(t.knockout_matches)
+                    done = group_matches_completed + knockout_matches_completed
+                    ratio = (done / total_matches) if total_matches else 0
+                    size_style = "" if view_mode == "شبكة" else "display:flex;align-items:center;gap:1rem;"
+                    st.markdown(f"""
+                        <div class='ux-card ux-card-accent' style='{size_style}'>
+                            <div style='flex:1;'>
+                                <div style='display:flex;align-items:center;justify-content:space-between;'>
+                                    <div style='font-weight:800;'>{get_sport_icon(t.sport_type.value)} {t.name}</div>
+                                    <span class='chip chip-accent'>{t.sport_type.value}</span>
+                                </div>
+                                <div style='margin-top:0.5rem; display:flex; gap:0.75rem; font-size:0.9rem; flex-wrap:wrap;'>
+                                    <div>👥 {len(t.teams)} فريق</div>
+                                    <div>📊 المجموعات: {group_matches_completed}/{len(t.matches)}</div>
+                                    <div>🥇 الإقصاء: {knockout_matches_completed}/{len(t.knockout_matches)}</div>
+                                </div>
+                                <div style='margin-top:0.5rem;'>
+                                    <div style='height:8px;background:var(--border);border-radius:999px;overflow:hidden;'>
+                                        <div style='width:{ratio*100:.0f}%;height:100%;background:var(--brand-primary);'></div>
+                                    </div>
+                                    <div class='ux-muted' style='font-size:0.8rem;margin-top:0.25rem;'>نسبة الإنجاز: {int(ratio*100)}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        if st.button("📺 عرض", key=f"dash_view_{t.id}", use_container_width=True):
+                            st.session_state.preselect_tournament = t.id
+                            st.session_state.page = "view_results"
+                            st.rerun()
+                    with b2:
+                        if st.button("📝 إضافة نتيجة", key=f"dash_addres_{t.id}", use_container_width=True):
+                            st.session_state.preselect_add_results_tournament = t.id
+                            st.session_state.page = "add_results"
+                            st.rerun()
+                    b3, b4 = st.columns(2)
+                    with b3:
+                        if st.button("👥 إدارة الفرق", key=f"dash_team_{t.id}", use_container_width=True):
+                            st.session_state.current_tournament = t.id
+                            st.session_state.page = "team_management"
+                            st.rerun()
+                    with b4:
+                        if st.button("🤝 إدارة المباريات", key=f"dash_match_{t.id}", use_container_width=True):
+                            st.session_state.current_tournament = t.id
+                            st.session_state.page = "match_management"
+                            st.rerun()
+                idx += 1
+        # Group tables section on dashboard
+        st.markdown("---")
+        st.subheader("جداول المجموعات")
+        for t_id, t in tournaments.items():
+            if t.groups:
+                with st.container():
+                    st.markdown(
+                        f"<div class='section-title'>{get_sport_icon(t.sport_type.value)} {t.name}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    # Render this tournament's groups inside an isolated grid container
+                    scene_bg = _sport_scene_tile_data_uri(t.sport_type.value)
+                    emoji_tile = _sport_tile_data_uri(get_sport_icon(t.sport_type.value))
+                    groups = list(t.groups.items())
+                    per_row = max(1, min(4, len(groups)))
+                    for row_start in range(0, len(groups), per_row):
+                        cols = st.columns(per_row)
+                        for j, (gid, group) in enumerate(groups[row_start:row_start+per_row]):
+                            with cols[j]:
+                                standings = t.get_group_standings(gid)
+                                table_lines = [
+                                    "<table class='pro-table'>",
+                                    "<thead><tr><th>الفريق</th><th>النقاط</th></tr></thead>",
+                                    "<tbody>"
+                                ]
+                                for row in standings:
+                                    table_lines.append(f"<tr><td>{row['team_name']}</td><td>{row['points']}</td></tr>")
+                                table_lines.append("</tbody></table>")
+                                table_html = "\n".join(table_lines)
+                                container_html = f"""
+                                <div style='padding:8px;border-radius:12px;
+                                            background-image: {scene_bg}, {emoji_tile};
+                                            background-repeat: repeat, repeat;
+                                            background-size: 180px 180px, 90px 90px;
+                                            background-color: rgba(255,255,255,0.92);
+                                            box-shadow: 0 2px 8px rgba(0,0,0,0.06);'>
+                                    <div class='subsection-title' style='margin:0 0 0.25rem 0;color:var(--text-strong);'>{group.name}</div>
+                                    {table_html}
+                                </div>
+                                """
+                                st.markdown(container_html, unsafe_allow_html=True)
+                st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     else:
         st.markdown("---")
-        st.info("مرحباً بك في نادي الأمين! ابدأ بإضافة فرق جديدة لإنشاء دورياتك الأولى.")
+        st.markdown(
+            """
+            <div class='ux-card ux-card-accent' style='text-align:center;'>
+                <div style='font-weight:800; margin-bottom:0.5rem;'>لا توجد دوريات بعد</div>
+                <div class='ux-muted'>ابدأ بإضافة فرق/لاعبين لإنشاء أول دوري لك</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        cta_col = st.columns([1,2,1])[1]
+        with cta_col:
+            if st.button("➕ ابدأ بإضافة فرق", type="primary", use_container_width=True):
+                st.session_state.page = "add_teams"
+                st.rerun()
 
 def main():
     """Main application function"""
-    # Add back to home button on all non-dashboard pages
-    if st.session_state.page != "dashboard":
-        if st.button("🏠 العودة للرئيسية", type="secondary"):
-            st.session_state.page = "dashboard"
-            if 'current_tournament' in st.session_state:
-                del st.session_state.current_tournament
-            st.rerun()
-        st.markdown("---")
-    
+    # Global UI baseline
+    inject_global_styles()
+    render_sidebar()
+    # (Top back button removed to avoid whitespace)
+
     # Route to appropriate page
     if st.session_state.page == "dashboard":
         render_dashboard()
@@ -798,6 +1691,29 @@ def main():
         else:
             st.error("لم يتم تحديد الدوري")
             st.session_state.page = "dashboard"
+            st.rerun()
+
+    elif st.session_state.page == "match_hub":
+        # Simple hub to select a tournament for match management
+        st.title("🤝 إدارة المباريات")
+        tournaments = tm.get_all_tournaments()
+        if tournaments:
+            options = {f"{get_sport_icon(t.sport_type.value)} {t.name}": tid for tid, t in tournaments.items()}
+            selected = st.selectbox("اختر الدوري", list(options.keys()))
+            if st.button("انتقال", type="primary"):
+                st.session_state.current_tournament = options[selected]
+                st.session_state.page = "match_management"
+                st.rerun()
+        else:
+            st.info("لا توجد دوريات متاحة")
+
+    # Bottom back-to-home button on all non-dashboard pages
+    if st.session_state.page != "dashboard":
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        if st.button("🏠 العودة للرئيسية", type="secondary"):
+            st.session_state.page = "dashboard"
+            if 'current_tournament' in st.session_state:
+                del st.session_state.current_tournament
             st.rerun()
 
 if __name__ == "__main__":

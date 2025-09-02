@@ -365,4 +365,19 @@ class Tournament:
             )
             tournament.knockout_matches[match.id] = match
         
+        # Normalize knockout round types if missing/unknown to ensure proper display
+        if tournament.knockout_matches:
+            valid_rounds = {"semi", "final"}
+            unknown = [m for m in tournament.knockout_matches.values() if m.round_type not in valid_rounds]
+            if unknown:
+                total_knock = len(tournament.knockout_matches)
+                inferred_round = "final" if total_knock == 1 else ("semi" if total_knock == 2 else None)
+                if inferred_round:
+                    for m in unknown:
+                        m.round_type = inferred_round
+                else:
+                    # Fallback: default unknown to 'semi' so they are at least visible
+                    for m in unknown:
+                        m.round_type = "semi"
+
         return tournament
