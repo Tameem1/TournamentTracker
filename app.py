@@ -12,7 +12,7 @@ st.set_page_config(
     page_title="دوريات نادي الأمين",
     page_icon="🏆",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
 # Initialize tournament manager
@@ -116,6 +116,35 @@ def inject_global_styles():
         [data-testid="stAppViewContainer"] { padding-top: 0 !important; }
         .block-container { padding-top: 0 !important; margin-top: 0 !important; }
         .block-container > :first-child { margin-top: 0 !important; }
+        /* Completely remove Streamlit's sidebar UI */
+        [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display: none !important; }
+        [data-testid="stAppViewContainer"] { margin-right: 0 !important; margin-left: 0 !important; }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .block-container { padding: 0.5rem !important; }
+            .stButton > button { font-size: 14px !important; padding: 0.5rem !important; }
+            .stSelectbox, .stTextInput, .stNumberInput { font-size: 16px !important; }
+            .stColumns > div { padding: 0.25rem !important; }
+            .pro-table th, .pro-table td { padding: 6px 4px !important; font-size: 12px !important; }
+            .section-title { font-size: 1.1rem !important; margin: 0.5rem 0 !important; }
+            .subsection-title { font-size: 1rem !important; margin: 0.25rem 0 !important; }
+            .ux-card { padding: 0.75rem !important; margin-bottom: 0.5rem !important; }
+            .chip { font-size: 11px !important; padding: 2px 6px !important; }
+            .top-nav { padding: 4px 6px !important; }
+            .top-nav-row { flex-direction: column !important; gap: 4px !important; }
+            .top-stats { margin-right: 0 !important; justify-content: center !important; }
+        }
+        
+        @media (max-width: 480px) {
+            .block-container { padding: 0.25rem !important; }
+            .stButton > button { font-size: 12px !important; padding: 0.4rem !important; }
+            .pro-table th, .pro-table td { padding: 4px 2px !important; font-size: 11px !important; }
+            .section-title { font-size: 1rem !important; }
+            .subsection-title { font-size: 0.9rem !important; }
+            .ux-card { padding: 0.5rem !important; }
+            .chip { font-size: 10px !important; padding: 1px 4px !important; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -561,48 +590,66 @@ def render_three_row_tournament_dashboard(tournament, full_screen: bool = False)
     else:
         st.info("لا توجد مجموعات")
 
-def render_sidebar():
-    with st.sidebar:
-        st.markdown("""
-            <div style='text-align:center; margin-bottom: 1rem;'>
-                <div style='font-size:2rem;'>🏆</div>
-                <div style='font-weight:800;'>دوريات نادي الأمين</div>
+def render_top_navbar():
+    """Render a top navigation bar to replace the right sidebar."""
+    nav_label_to_page = {
+        "الرئيسية": "dashboard",
+        "أضف نتائج": "add_results",
+        "عرض نتائج": "view_results",
+        "أضف فرق": "add_teams",
+        "تعديل": "edit_mode",
+    }
+    tournaments = tm.get_all_tournaments()
+    total_teams = sum(len(t.teams) for t in tournaments.values()) if tournaments else 0
+    total_matches = sum(len(t.matches) + len(t.knockout_matches) for t in tournaments.values()) if tournaments else 0
+    completed_matches = sum(
+        sum(1 for m in t.matches.values() if m.is_completed) +
+        sum(1 for m in t.knockout_matches.values() if m.is_completed)
+        for t in tournaments.values()
+    ) if tournaments else 0
+
+    st.markdown(
+        """
+        <style>
+        .top-nav { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--border); border-radius: 12px; padding: 6px 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); margin-bottom: 8px; }
+        .top-nav-row { display:flex; align-items:center; gap: 8px; }
+        .top-brand { display:flex; align-items:center; gap:8px; font-weight:800; }
+        .top-stats { display:flex; align-items:center; gap:8px; margin-right:auto; }
+        .chip { display:inline-block; padding: 2px 8px; border-radius:999px; background:#eef2f7; color:var(--text); font-size:12px; border:1px solid var(--border); }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.container():
+        st.markdown(
+            """
+            <div class='top-nav'>
+              <div class='top-nav-row'>
+                <div class='top-brand'>🏆 <span>دوريات نادي الأمين</span></div>
+                <div class='top-stats'>
+                  <span class='chip'>الدوريات: {tournaments_count}</span>
+                  <span class='chip'>الفرق: {teams_count}</span>
+                  <span class='chip'>المكتملة: {completed}/{total}</span>
+                </div>
+              </div>
             </div>
-        """, unsafe_allow_html=True)
-
-        nav_label_to_page = {
-            "الرئيسية": "dashboard",
-            "أضف نتائج": "add_results",
-            "عرض نتائج": "view_results",
-            "أضف فرق": "add_teams",
-            "تعديل": "edit_mode",
-        }
-        current_page_label = next((k for k, v in nav_label_to_page.items() if v == st.session_state.page), "الرئيسية")
-        selected = st.radio(
-            "التنقل",
-            list(nav_label_to_page.keys()),
-            index=list(nav_label_to_page.keys()).index(current_page_label),
+            """.format(
+                tournaments_count=len(tournaments) if tournaments else 0,
+                teams_count=total_teams,
+                completed=completed_matches,
+                total=total_matches,
+            ),
+            unsafe_allow_html=True,
         )
-        # Only update page if current page is one of the nav targets
-        if st.session_state.page in nav_label_to_page.values() and nav_label_to_page[selected] != st.session_state.page:
-            st.session_state.page = nav_label_to_page[selected]
-            st.rerun()
-
-        # Quick stats
-        tournaments = tm.get_all_tournaments()
-        if tournaments:
-            total_teams = sum(len(t.teams) for t in tournaments.values())
-            total_matches = sum(len(t.matches) + len(t.knockout_matches) for t in tournaments.values())
-            completed_matches = sum(
-                sum(1 for m in t.matches.values() if m.is_completed) +
-                sum(1 for m in t.knockout_matches.values() if m.is_completed)
-                for t in tournaments.values()
-            )
-            st.markdown("---")
-            st.caption("نظرة سريعة")
-            st.metric("عدد الدوريات", len(tournaments))
-            st.metric("إجمالي الفرق", total_teams)
-            st.metric("المباريات المكتملة", f"{completed_matches}/{total_matches}")
+        cols = st.columns([2,2,2,2,2,1])
+        labels = list(nav_label_to_page.keys())
+        current_page_label = next((k for k, v in nav_label_to_page.items() if v == st.session_state.page), "الرئيسية")
+        for i, label in enumerate(labels):
+            with cols[i]:
+                if st.button(label, use_container_width=True, type=("primary" if label == current_page_label else "secondary")):
+                    if nav_label_to_page[label] != st.session_state.page:
+                        st.session_state.page = nav_label_to_page[label]
+                        st.rerun()
 
 def render_add_results_page():
     """Render add results page"""
@@ -682,7 +729,8 @@ def render_add_results_page():
     # Reset index when tournament filter changes
     if st.session_state.addres_idx >= len(labels):
         st.session_state.addres_idx = 0
-    col_sel, col_next = st.columns([4,1])
+    # Mobile-responsive match selection
+    col_sel, col_next = st.columns([3,1])
     with col_sel:
         selected_match_label = st.selectbox("المباراة", labels, index=st.session_state.addres_idx)
     with col_next:
@@ -703,7 +751,8 @@ def render_add_results_page():
         st.markdown("---")
         st.subheader(f"نتيجة المباراة: {team1_name} ضد {team2_name}")
         
-        # Minimal quick actions with optional custom input
+        # Mobile-responsive quick actions
+        st.markdown("**اختر النتيجة:**")
         col1, col2, col3 = st.columns(3)
         
         with col1:
@@ -739,25 +788,23 @@ def render_add_results_page():
                 else:
                     st.error("فشل في تحديث النتيجة")
 
-        # Optional custom score (collapsed by default)
+        # Mobile-responsive custom score section
         with st.expander("نتيجة مخصصة"):
-            sc1, sc2, sc3, sc4 = st.columns([2,1,1,2])
-            with sc1:
+            # Mobile: stack vertically, desktop: horizontal
+            col1, col2 = st.columns(2)
+            with col1:
                 team1_score = st.number_input("نتيجة الفريق 1", min_value=0, step=1, key=f"cust_t1_{match.id}")
-            with sc2:
-                st.write("")
-                st.write("VS")
-            with sc3:
+            with col2:
                 team2_score = st.number_input("نتيجة الفريق 2", min_value=0, step=1, key=f"cust_t2_{match.id}")
-            with sc4:
-                if st.button("تحديث النتيجة", type="primary", key=f"cust_update_{match.id}", use_container_width=True):
-                    if tm.update_match_result(selected_item['tournament_id'], match.id, int(team1_score), int(team2_score)):
-                        st.success("تم تحديث النتيجة!")
-                        st.session_state.addres_idx = (labels.index(selected_match_label) + 1) % len(labels)
-                        st.session_state.page = "dashboard"
-                        st.rerun()
-                    else:
-                        st.error("فشل في تحديث النتيجة")
+            
+            if st.button("تحديث النتيجة", type="primary", key=f"cust_update_{match.id}", use_container_width=True):
+                if tm.update_match_result(selected_item['tournament_id'], match.id, int(team1_score), int(team2_score)):
+                    st.success("تم تحديث النتيجة!")
+                    st.session_state.addres_idx = (labels.index(selected_match_label) + 1) % len(labels)
+                    st.session_state.page = "dashboard"
+                    st.rerun()
+                else:
+                    st.error("فشل في تحديث النتيجة")
 
 def render_view_results_page():
     """Render view results page"""
@@ -791,9 +838,20 @@ def render_view_results_page():
         exit_flag = _getv("exit")
         mode_val = _getv("mode")
         interval_val = _getv("interval")
+        prev_flag = _getv("prev")
+        next_flag = _getv("next")
+        
         if exit_flag:
             st.session_state.auto_mode_running = False
             st.session_state.viewing_mode = "manual"
+            _clear_params()
+            st.rerun()
+        if prev_flag:
+            st.session_state.current_slide -= 1
+            _clear_params()
+            st.rerun()
+        if next_flag:
+            st.session_state.current_slide += 1
             _clear_params()
             st.rerun()
         if mode_val in ("manual", "automatic"):
@@ -984,11 +1042,7 @@ def render_view_results_page():
                         transform: scale({scale_val}); transform-origin: top center;
                         animation: slideFadeIn 300ms ease both;
                     }}
-                    .autoslide-controls {{
-                        width: 100%; max-width: 1200px;
-                        display: flex; align-items: center; justify-content: center;
-                        margin-top: 8px;
-                    }}
+
                     /* Compact overrides for group cards/tables to reduce height */
                     .group-card {{ padding: {card_pad}px; }}
                     .group-card .pro-table.compact th, .group-card .pro-table.compact td {{ padding: {comp_pad}px 6px; font-size: {comp_font}px; }}
@@ -998,32 +1052,42 @@ def render_view_results_page():
                     """,
                     unsafe_allow_html=True,
                 )
-                # Render the slide content within a wrapper that we can scale and center
-                st.markdown("<div class='autoslide-overlay'><div class='autoslide-canvas' style='margin-top:0'>", unsafe_allow_html=True)
+                # Render slide content without overlay
                 _render_auto_slide(current_tournament, kind, payload)
-                # Controls under the slide: Exit, Mode, Interval
-                mode_now = st.session_state.viewing_mode
-                other_mode = 'manual' if mode_now == 'automatic' else 'automatic'
-                other_mode_label = 'يدوي' if other_mode == 'manual' else 'تلقائي'
-                cur_int = int(st.session_state.slideshow_interval)
-                minus_int = max(5, cur_int - 5)
-                plus_int = min(60, cur_int + 5)
-                st.markdown(
-                    f"""
-                    </div>
-                    <div class='autoslide-controls'>
-                      <a class='exit-btn' href='?exit=1'>⤴️ خروج</a>
-                      <span style='width:12px;display:inline-block'></span>
-                      <span style='width:6px;display:inline-block'></span>
-                    </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                # Auto-advance
-                time.sleep(interval)
-                st.session_state.current_slide += 1
-                st.rerun()
+                
+                # Control buttons in normal flow
+                st.markdown("---")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("⬅️ السابق", key="prev_btn"):
+                        st.session_state.current_slide -= 1
+                        # Reset timer to sync with manual navigation
+                        st.session_state.last_advance_time = time.time()
+                        st.rerun()
+                
+                with col2:
+                    if st.button("التالي ➡️", key="next_btn"):
+                        st.session_state.current_slide += 1
+                        # Reset timer to sync with manual navigation
+                        st.session_state.last_advance_time = time.time()
+                        st.rerun()
+                
+                with col3:
+                    if st.button("⤴️ خروج", key="exit_btn"):
+                        st.session_state.auto_mode_running = False
+                        st.session_state.viewing_mode = "manual"
+                        st.rerun()
+                
+                # Synchronized auto-advance timer
+                if st.session_state.get("last_advance_time", 0) + interval <= time.time():
+                    st.session_state.current_slide += 1
+                    st.session_state.last_advance_time = time.time()
+                    st.rerun()
+                else:
+                    # Keep the page responsive by using a short sleep
+                    time.sleep(0.1)
+                    st.rerun()
         else:
             st.info("اضغط على 'بدء العرض التلقائي' لبدء العرض التلقائي للدوريات")
             st.subheader("الدوريات المتاحة")
@@ -1654,7 +1718,17 @@ def main():
     """Main application function"""
     # Global UI baseline
     inject_global_styles()
-    render_sidebar()
+    # Only show navbar on interactive pages, not on dashboard or auto slideshow
+    show_navbar = True
+    try:
+        if st.session_state.page == "dashboard":
+            show_navbar = False
+        elif st.session_state.page == "view_results" and st.session_state.viewing_mode == "automatic" and st.session_state.auto_mode_running:
+            show_navbar = False
+    except Exception:
+        pass
+    if show_navbar:
+        render_top_navbar()
     # (Top back button removed to avoid whitespace)
 
     # Route to appropriate page
