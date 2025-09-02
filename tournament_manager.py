@@ -2,7 +2,7 @@ import streamlit as st
 import os
 from typing import Dict, Optional
 from models import Tournament, Team, Match, SportType, MatchStatus
-from utils import save_tournaments, load_tournaments, get_sport_icon, get_round_name, validate_score, get_team_name_label, DATA_FILE
+from utils import save_tournaments, load_tournaments, get_sport_icon, get_round_name, validate_score, get_team_name_label, get_store_mtime
 
 class TournamentManager:
     def __init__(self):
@@ -11,14 +11,14 @@ class TournamentManager:
         # Track data file modification time to auto-refresh
         if '_data_mtime' not in st.session_state:
             try:
-                st.session_state._data_mtime = os.path.getmtime(DATA_FILE)
+                st.session_state._data_mtime = float(get_store_mtime())
             except Exception:
                 st.session_state._data_mtime = 0.0
 
     def _refresh_if_changed(self):
         """Reload tournaments from disk if the data file has changed externally."""
         try:
-            current_mtime = os.path.getmtime(DATA_FILE)
+            current_mtime = float(get_store_mtime())
         except Exception:
             current_mtime = 0.0
         if current_mtime and current_mtime > st.session_state.get('_data_mtime', 0.0):
@@ -30,7 +30,7 @@ class TournamentManager:
         ok = save_tournaments(st.session_state.tournaments)
         # Update mtime after save
         try:
-            st.session_state._data_mtime = os.path.getmtime(DATA_FILE)
+            st.session_state._data_mtime = float(get_store_mtime())
         except Exception:
             pass
         return ok
